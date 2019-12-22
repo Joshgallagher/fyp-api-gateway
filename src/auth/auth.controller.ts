@@ -4,7 +4,7 @@ import { LoginUserDto } from './dto/login-user.dto';
 
 @Controller('auth')
 export class AuthController {
-    @Post('/login')
+    @Post()
     @HttpCode(OK)
     login(@Body() loginUserDto: LoginUserDto) {
         return {};

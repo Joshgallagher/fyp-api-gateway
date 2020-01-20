@@ -1,7 +1,7 @@
 import { ClientOptions, Transport } from '@nestjs/microservices';
-import { join, resolve } from 'path';
+import { join } from 'path';
 
-export const grpcConfig: ClientOptions = {
+export const userServiceConfig: ClientOptions = {
     transport: Transport.GRPC,
     options: {
         url: '127.0.0.1:50052',

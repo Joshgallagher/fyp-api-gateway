@@ -1,12 +1,12 @@
-import { Controller, Get, Param, Post, Body, Headers, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Headers, UnauthorizedException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { grpcConfig } from '../services/config/grpc.config';
+import { userServiceConfig } from '../services/config/user-service.config';
 import { ClientGrpc, Client } from '@nestjs/microservices';
-import { Metadata, MetadataValue } from 'grpc';
+import { Metadata } from 'grpc';
 
 @Controller('user')
 export class UserController {
-    @Client(grpcConfig)
+    @Client(userServiceConfig)
     client: ClientGrpc;
 
     userService: any;

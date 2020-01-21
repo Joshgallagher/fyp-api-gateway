@@ -1,4 +1,4 @@
-import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { userServiceConfig } from '../services/config/user-service.config';
 import { Client, ClientGrpc } from '@nestjs/microservices';
 import { Metadata } from 'grpc';
@@ -29,6 +29,21 @@ export class UserService {
 
             if (details === 'VALIDATION_ERROR') {
                 throw new UnprocessableEntityException(error);
+            }
+        }
+    }
+
+    async findOne({ authorization }, id: string) {
+        try {
+            return await this.userService
+                .getUser({ id }, (new Metadata()).add('authorization', authorization))
+                .toPromise();
+        } catch ({ code, metadata, details }) {
+            const errorMetadata = (metadata as Metadata);
+            const error = errorMetadata.get('error')[0];
+
+            if (details === 'NOT_FOUND_ERROR') {
+                throw new NotFoundException(error);
             }
         }
     }

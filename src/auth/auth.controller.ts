@@ -1,11 +1,10 @@
-import { Controller, Post, Body, HttpCode } from '@nestjs/common';
-import { OK } from 'http-status-codes';
+import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { LoginUserDto } from './dto/login-user.dto';
 
 @Controller('auth')
 export class AuthController {
     @Post()
-    @HttpCode(OK)
+    @HttpCode(HttpStatus.OK)
     login(@Body() loginUserDto: LoginUserDto) {
         return {};
     }

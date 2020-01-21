@@ -5,9 +5,18 @@ import { AuthController } from './auth/auth.controller';
 import { AuthModule } from './auth/auth.module';
 import { UserService } from './user/user.service';
 import { AuthService } from './auth/auth.service';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [UserModule, AuthModule],
+  imports: [
+    ConfigModule.forRoot({
+      envFilePath: process.env.NODE_ENV === 'test'
+        ? '.env.test'
+        : '.env'
+    }),
+    UserModule,
+    AuthModule
+  ],
   controllers: [UserController, AuthController],
   providers: [UserService, AuthService],
 })

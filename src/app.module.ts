@@ -8,11 +8,15 @@ import { AuthService } from './auth/auth.service';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [UserModule, AuthModule, ConfigModule.forRoot({
-    envFilePath: process.env.NODE_ENV === 'test'
-      ? '.env.test'
-      : '.env'
-  })],
+  imports: [
+    ConfigModule.forRoot({
+      envFilePath: process.env.NODE_ENV === 'test'
+        ? '.env.test'
+        : '.env'
+    }),
+    UserModule,
+    AuthModule
+  ],
   controllers: [UserController, AuthController],
   providers: [UserService, AuthService],
 })

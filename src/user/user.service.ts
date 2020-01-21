@@ -1,4 +1,4 @@
-import { Injectable, UnprocessableEntityException, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException, NotFoundException } from '@nestjs/common';
 import { userServiceConfig } from '../services/config/user-service.config';
 import { Client, ClientGrpc } from '@nestjs/microservices';
 import { Metadata } from 'grpc';

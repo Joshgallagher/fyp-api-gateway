@@ -17,14 +17,12 @@ export class UserService {
 
     async create({ authorization }, { name, email, password }: CreateUserDto) {
         try {
-            const response = await this.userService
+            return await this.userService
                 .registerUser(
                     { name, email, password },
                     (new Metadata()).add('authorization', authorization)
                 )
                 .toPromise();
-
-            return response;
         } catch ({ code, metadata, details }) {
             const errorMetadata = (metadata as Metadata);
             const error = errorMetadata.get('error')[0];

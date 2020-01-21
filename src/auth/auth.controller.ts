@@ -1,12 +1,15 @@
-import { Controller, Post, Body, HttpCode } from '@nestjs/common';
-import { OK } from 'http-status-codes';
+import { Controller, Post, Body, HttpCode, HttpStatus, Headers } from '@nestjs/common';
 import { LoginUserDto } from './dto/login-user.dto';
+import { AuthService } from './auth.service';
+
 
 @Controller('auth')
 export class AuthController {
+    constructor(private readonly authService: AuthService) { }
+
     @Post()
-    @HttpCode(OK)
-    login(@Body() loginUserDto: LoginUserDto) {
-        return {};
+    @HttpCode(HttpStatus.OK)
+    async login(@Headers() headers, @Body() user: LoginUserDto) {
+        return await this.authService.login(headers, user);
     }
 }

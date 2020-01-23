@@ -32,7 +32,12 @@ describe('Auth Controller', () => {
         password: 'secret',
       };
 
-      controller.login(headers, user);
+      const expected: Record<string, boolean> = { authenticated: true };
+
+      jest.spyOn(service, 'login')
+        .mockImplementation(() => Promise.resolve(expected));
+
+      expect(await controller.login(headers, user)).toStrictEqual(expected);
       expect(service.login).toHaveBeenCalledWith(headers, user);
     });
   });

@@ -34,17 +34,30 @@ describe('User Controller', () => {
         password: 'secret',
       };
 
-      controller.create(headers, user);
+      const expected: Record<string, boolean> = { registered: true };
+
+      jest.spyOn(service, 'create')
+        .mockImplementation(() => Promise.resolve(expected));
+
+      expect(await controller.create(headers, user)).toStrictEqual(expected);
       expect(service.create).toHaveBeenCalledWith(headers, user);
     });
   });
 
   describe('findOne', () => {
-    it('should findOne (get) a user', async () => {
+    it('should findOne (get a) user', async () => {
       const headers: any = { authorization: 'Bearer 123xyx' };
       const userId: string = '854c9a9b-4a4a-410f-867c-9985c17878d8';
 
-      controller.findOne(headers, userId);
+      const expected: Record<string, number | string> = {
+        id: userId,
+        name: 'Josh',
+      };
+
+      jest.spyOn(service, 'findOne')
+        .mockImplementation(() => Promise.resolve(expected));
+
+      expect(await controller.findOne(headers, userId)).toStrictEqual(expected);
       expect(service.findOne).toHaveBeenCalledWith(headers, userId);
     });
   });

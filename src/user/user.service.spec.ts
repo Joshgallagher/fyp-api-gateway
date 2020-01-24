@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
+import { CreateUserDto } from './dto/create-user.dto';
 
 describe('UserService', () => {
   let service: UserService;
@@ -12,7 +13,40 @@ describe('UserService', () => {
     service = module.get<UserService>(UserService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  describe('create', () => {
+    it('should create (register) a user', async () => {
+      const headers: any = { authorization: 'Bearer 123xyx' };
+      const user: CreateUserDto = {
+        name: 'Josh',
+        email: 'josh@gmail.com',
+        password: 'secret',
+      };
+
+      const expected: Record<string, boolean> = { registered: true };
+
+      jest.spyOn(service, 'create')
+        .mockImplementation(() => Promise.resolve(expected));
+
+      expect(await service.create(headers, user)).toStrictEqual(expected);
+      expect(service.create).toHaveBeenCalledWith(headers, user);
+    });
+  });
+
+  describe('findOne', () => {
+    it('should findOne (get a) user', async () => {
+      const headers: any = { authorization: 'Bearer 123xyx' };
+      const userId: string = '854c9a9b-4a4a-410f-867c-9985c17878d8';
+
+      const expected: Record<string, number | string> = {
+        id: userId,
+        name: 'Josh',
+      };
+
+      jest.spyOn(service, 'findOne')
+        .mockImplementation(() => Promise.resolve(expected));
+
+      expect(await service.findOne(headers, userId)).toStrictEqual(expected);
+      expect(service.findOne).toHaveBeenCalledWith(headers, userId);
+    });
   });
 });

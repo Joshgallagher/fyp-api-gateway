@@ -4,8 +4,12 @@ import { join } from 'path';
 export const userServiceConfig: ClientOptions = {
     transport: Transport.GRPC,
     options: {
-        url: '127.0.0.1:50052',
+        // Docker service name with port
+        url: 'user-service:50052',
         package: 'user',
-        protoPath: join(__dirname, '..', '..', '..', 'src', 'services', 'proto', 'user.proto'),
+        // This path points to the dist folder
+        // TODO: Copy .proto files to dist automatically
+        // If this service stops working, check that the dist has the .proto files
+        protoPath: join(__dirname, '../../user.proto'),
     },
 };

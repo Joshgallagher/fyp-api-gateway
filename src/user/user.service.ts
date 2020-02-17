@@ -1,4 +1,4 @@
-import { Injectable, UnprocessableEntityException, NotFoundException } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { userServiceConfig } from '../services/config/user-service.config';
 import { Client, ClientGrpc } from '@nestjs/microservices';
 import { Metadata } from 'grpc';
@@ -15,20 +15,25 @@ export class UserService {
         this.userService = this.client.getService('UserService');
     }
 
-    async create({ authorization }, { name, email, password }: CreateUserDto) {
+    async create({ name, email, password }: CreateUserDto) {
         try {
             return await this.userService
                 .registerUser(
-                    { name, email, password },
-                    (new Metadata()).add('authorization', authorization)
+                    { name, email, password }
                 )
                 .toPromise();
         } catch ({ code, metadata, details }) {
             const errorMetadata = (metadata as Metadata);
-            const error = errorMetadata.get('error')[0];
+            const message = errorMetadata.get('error')[0];
+            const field = errorMetadata.get('field')[0];
+
 
             if (details === 'VALIDATION_ERROR') {
-                throw new UnprocessableEntityException(error);
+                throw new UnprocessableEntityException({ field, message });
+            }
+
+            if (details === 'UNAUTHENTICATED_ERROR') {
+                throw new UnauthorizedException(message);
             }
         }
     }
@@ -40,10 +45,10 @@ export class UserService {
                 .toPromise();
         } catch ({ code, metadata, details }) {
             const errorMetadata = (metadata as Metadata);
-            const error = errorMetadata.get('error')[0];
+            const message = errorMetadata.get('error')[0];
 
             if (details === 'NOT_FOUND_ERROR') {
-                throw new NotFoundException(error);
+                throw new NotFoundException(message);
             }
         }
     }

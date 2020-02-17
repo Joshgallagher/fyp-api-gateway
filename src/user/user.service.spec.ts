@@ -15,7 +15,6 @@ describe('UserService', () => {
 
   describe('create', () => {
     it('should create (register) a user', async () => {
-      const headers: any = { authorization: 'Bearer 123xyx' };
       const user: CreateUserDto = {
         name: 'Josh',
         email: 'josh@gmail.com',
@@ -27,8 +26,8 @@ describe('UserService', () => {
       jest.spyOn(service, 'create')
         .mockImplementation(() => Promise.resolve(expected));
 
-      expect(await service.create(headers, user)).toStrictEqual(expected);
-      expect(service.create).toHaveBeenCalledWith(headers, user);
+      expect(await service.create(user)).toStrictEqual(expected);
+      expect(service.create).toHaveBeenCalledWith(user);
     });
   });
 

@@ -15,7 +15,6 @@ describe('AuthService', () => {
 
   describe('login', () => {
     it('should login (authenticate) a user', async () => {
-      const headers: any = { authorization: 'Bearer 123xyx' };
       const user: LoginUserDto = {
         email: 'josh@gmail.com',
         password: 'secret',
@@ -26,8 +25,8 @@ describe('AuthService', () => {
       jest.spyOn(service, 'login')
         .mockImplementation(() => Promise.resolve(expected));
 
-      expect(await service.login(headers, user)).toStrictEqual(expected);
-      expect(service.login).toHaveBeenCalledWith(headers, user);
+      expect(await service.login(user)).toStrictEqual(expected);
+      expect(service.login).toHaveBeenCalledWith(user);
     });
   });
 });

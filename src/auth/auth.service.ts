@@ -15,20 +15,24 @@ export class AuthService {
         this.userService = this.client.getService('UserService');
     }
 
-    async login({ authorization }, { email, password }: LoginUserDto) {
+    async login({ email, password }: LoginUserDto) {
         try {
             return await this.userService
                 .authenticateUser(
                     { email, password },
-                    (new Metadata()).add('authorization', authorization)
                 )
                 .toPromise();
         } catch ({ code, metadata, details }) {
             const errorMetadata = (metadata as Metadata);
-            const error = errorMetadata.get('error')[0];
+            const message = errorMetadata.get('error')[0];
+            const field = errorMetadata.get('field')[0];
+
+            if (details === 'VALIDATION_ERROR') {
+                throw new UnprocessableEntityException({ field, message });
+            }
 
             if (details === 'UNAUTHENTICATED_ERROR') {
-                throw new UnauthorizedException(error);
+                throw new UnauthorizedException(message);
             }
         }
     }

@@ -9,7 +9,7 @@ export class AuthController {
 
     @Post()
     @HttpCode(HttpStatus.OK)
-    async login(@Headers() headers, @Body() user: LoginUserDto) {
-        return await this.authService.login(headers, user);
+    async login(@Body() user: LoginUserDto) {
+        return await this.authService.login(user);
     }
 }

@@ -39,9 +39,12 @@ export class UserService {
     }
 
     async findOne({ authorization }, id: string) {
+        const metadata = new Metadata();
+        metadata.add('authorization', authorization);
+
         try {
             return await this.userService
-                .getUser({ id }, (new Metadata()).add('authorization', authorization))
+                .getUser({ id }, metadata)
                 .toPromise();
         } catch ({ code, metadata, details }) {
             const errorMetadata = (metadata as Metadata);

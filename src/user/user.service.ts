@@ -18,15 +18,12 @@ export class UserService {
     async create({ name, email, password }: CreateUserDto) {
         try {
             return await this.userService
-                .registerUser(
-                    { name, email, password }
-                )
+                .registerUser({ name, email, password })
                 .toPromise();
         } catch ({ code, metadata, details }) {
             const errorMetadata = (metadata as Metadata);
             const message = errorMetadata.get('error')[0];
             const field = errorMetadata.get('field')[0];
-
 
             if (details === 'VALIDATION_ERROR') {
                 throw new UnprocessableEntityException({ field, message });
@@ -38,14 +35,9 @@ export class UserService {
         }
     }
 
-    async findOne({ authorization }, id: string) {
-        const metadata = new Metadata();
-        metadata.add('authorization', authorization);
-
+    async findOne(id: string) {
         try {
-            return await this.userService
-                .getUser({ id }, metadata)
-                .toPromise();
+            return await this.userService.getUser({ id }).toPromise();
         } catch ({ code, metadata, details }) {
             const errorMetadata = (metadata as Metadata);
             const message = errorMetadata.get('error')[0];

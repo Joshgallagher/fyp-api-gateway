@@ -4,17 +4,13 @@ package user;
 
 service UserService {
     rpc RegisterUser (RegisterUserRequest) returns (RegisterUserResponse);
-    rpc AuthenticateUser (AuthenticateUserRequest) returns (AuthenticateUserResponse);
+    rpc AuthenticateUser (AuthenticateUserRequest) returns (User);
     rpc GetUser (GetUserRequest) returns (User);
 }
 
 message User {
     string id = 1;
     string name = 2;    
-}
-
-message GetUserRequest {
-    string id = 1;
 }
 
 message RegisterUserRequest {
@@ -32,6 +28,6 @@ message AuthenticateUserRequest {
     string password = 2;
 }
 
-message AuthenticateUserResponse {
-    bool authenticated = 1;
+message GetUserRequest {
+    string id = 1;
 }

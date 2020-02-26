@@ -12,7 +12,7 @@ export class UserController {
     }
 
     @Get(':id')
-    async findOne(@Headers() headers, @Param('id') id: string) {
+    async findOne(@Param('id') id: string) {
         return await this.userService.findOne(id);
     }
 }

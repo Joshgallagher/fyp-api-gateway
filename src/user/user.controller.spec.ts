@@ -45,7 +45,6 @@ describe('User Controller', () => {
 
   describe('findOne', () => {
     it('should findOne (get a) user', async () => {
-      const headers: any = { authorization: 'Bearer 123xyx' };
       const userId: string = '854c9a9b-4a4a-410f-867c-9985c17878d8';
 
       const expected: Record<string, number | string> = {
@@ -56,8 +55,8 @@ describe('User Controller', () => {
       jest.spyOn(service, 'findOne')
         .mockImplementation(() => Promise.resolve(expected));
 
-      expect(await controller.findOne(headers, userId)).toStrictEqual(expected);
-      expect(service.findOne).toHaveBeenCalledWith(headers, userId);
+      expect(await controller.findOne(userId)).toStrictEqual(expected);
+      expect(service.findOne).toHaveBeenCalledWith(userId);
     });
   });
 });

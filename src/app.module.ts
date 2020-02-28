@@ -6,16 +6,19 @@ import { AuthModule } from './auth/auth.module';
 import { UserService } from './user/user.service';
 import { AuthService } from './auth/auth.service';
 import { ConfigModule } from '@nestjs/config';
+import { ArticlesModule } from './articles/articles.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
+      isGlobal: true,
       envFilePath: process.env.NODE_ENV === 'test'
         ? '.env.test'
         : '.env'
     }),
     UserModule,
-    AuthModule
+    AuthModule,
+    ArticlesModule
   ],
   controllers: [UserController, AuthController],
   providers: [UserService, AuthService],

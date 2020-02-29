@@ -1,7 +1,7 @@
 import { ClientOptions, Transport } from '@nestjs/microservices';
 import { join } from 'path';
 
-export const userServiceConfig: ClientOptions = {
+export const bookmarkServiceConfig: ClientOptions = {
     transport: Transport.GRPC,
     options: {
         url: 'bookmark-service:7272',

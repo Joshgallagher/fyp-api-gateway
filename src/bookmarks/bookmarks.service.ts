@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, InternalServerErrorException, ConflictException, Inject } from '@nestjs/common';
+import { Injectable, OnModuleInit, InternalServerErrorException, ConflictException, Inject, NotFoundException } from '@nestjs/common';
 import { ClientGrpc, Client } from '@nestjs/microservices';
 import { bookmarkServiceConfig } from '../services/config/bookmark-service.config';
 import { Metadata } from 'grpc';
@@ -50,6 +50,26 @@ export class BookmarksService implements OnModuleInit {
         try {
             return await this.bookmarksService.findAllBookmarks({}, metadata).toPromise();
         } catch (e) {
+            throw new InternalServerErrorException();
+        }
+    }
+
+    async delete(token: string, articleSlug: string) {
+        const { id: articleId } = await this.articlesService.findOne(articleSlug, false) as any;
+
+        try {
+            const metadata: Metadata = new Metadata();
+            metadata.add('authorization', token);
+
+            return await this.bookmarksService.deleteBookmark({ articleId }, metadata).toPromise();
+        } catch ({ code, metadata, details }) {
+            const errorMetadata = (metadata as Metadata);
+            const message = errorMetadata.get('error')[0];
+
+            if (details === 'BOOKMARK_NOT_FOUND') {
+                throw new NotFoundException({ message });
+            }
+
             throw new InternalServerErrorException();
         }
     }

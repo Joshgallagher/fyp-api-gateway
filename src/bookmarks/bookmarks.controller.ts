@@ -8,10 +8,9 @@ export class BookmarksController {
     @Post()
     create(
         @Headers('authorization') token: string,
-        @Body('articleId') articleId: number,
         @Body('articleSlug') articleSlug: string
     ): Promise<any> {
-        return this.bookmarksService.create(token, articleId, articleSlug);
+        return this.bookmarksService.create(token, articleSlug);
     }
 
     @Get()

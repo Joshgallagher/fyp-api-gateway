@@ -19,14 +19,14 @@ export class BookmarksService implements OnModuleInit {
         this.bookmarksService = this.client.getService('BookmarksService');
     }
 
-    async create(token: string, articleId: number, articleSlug: string) {
+    async create(token: string, articleSlug: string) {
         const metadata: Metadata = new Metadata();
         metadata.add('authorization', token);
 
-        await this.articlesService.findOne(articleSlug, false);
+        const { id: articleId } = await this.articlesService.findOne(articleSlug, false) as any;
 
         try {
-            return await this.bookmarksService.createBookmark({ articleId: (articleId as number) }, metadata).toPromise();
+            return await this.bookmarksService.createBookmark({ articleId }, metadata).toPromise();
         } catch ({ code, metadata, details }) {
             const errorMetadata = (metadata as Metadata);
             const message = errorMetadata.get('error')[0];

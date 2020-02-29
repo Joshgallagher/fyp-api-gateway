@@ -7,6 +7,9 @@ import { UserService } from './user/user.service';
 import { AuthService } from './auth/auth.service';
 import { ConfigModule } from '@nestjs/config';
 import { ArticlesModule } from './articles/articles.module';
+import { BookmarksService } from './bookmarks/bookmarks.service';
+import { BookmarksController } from './bookmarks/bookmarks.controller';
+import { BookmarksModule } from './bookmarks/bookmarks.module';
 
 @Module({
   imports: [
@@ -18,9 +21,10 @@ import { ArticlesModule } from './articles/articles.module';
     }),
     UserModule,
     AuthModule,
-    ArticlesModule
+    ArticlesModule,
+    BookmarksModule
   ],
-  controllers: [UserController, AuthController],
-  providers: [UserService, AuthService],
+  controllers: [UserController, AuthController, BookmarksController],
+  providers: [UserService, AuthService, BookmarksService],
 })
 export class AppModule { }

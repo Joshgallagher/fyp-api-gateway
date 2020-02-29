@@ -1,4 +1,4 @@
-import { Injectable, HttpService, Inject, OnModuleInit } from '@nestjs/common';
+import { Injectable, HttpService, Inject, OnModuleInit, HttpStatus, NotFoundException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { ConfigService } from '@nestjs/config';
 
@@ -72,16 +72,30 @@ export class ArticlesService implements OnModuleInit {
         return articles;
     }
 
-    async findOne(slug: string): Promise<object> {
-        const { data } = await this.httpService
-            .get(`${this.articleServiceURL}/articles/${slug}`)
-            .toPromise();
+    async findOne(slug: string, includeAuthor: boolean = true): Promise<object> {
+        let article: any;
 
-        const { name } = await this.userService.findOne(data.user_id);
+        try {
+            const { data } = await this.httpService
+                .get(`${this.articleServiceURL}/articles/${slug}`)
+                .toPromise();
 
-        data['author'] = name;
+            article = data;
+        } catch ({ response }) {
+            const { statusCode, message } = response.data;
 
-        return data;
+            if (statusCode === HttpStatus.NOT_FOUND) {
+                throw new NotFoundException({ message });
+            }
+        }
+
+        if (includeAuthor) {
+            const { name } = await this.userService.findOne(article.user_id);
+
+            article['author'] = name;
+        }
+
+        return article;
     }
 
     async update(

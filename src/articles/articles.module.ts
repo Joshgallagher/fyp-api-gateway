@@ -7,6 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 @Module({
   imports: [HttpModule, UserModule],
   controllers: [ArticlesController],
-  providers: [ArticlesService]
+  providers: [ArticlesService],
+  exports: [ArticlesService]
 })
 export class ArticlesModule { }

@@ -1,30 +1,21 @@
 import { Injectable, HttpService, Inject, OnModuleInit, HttpStatus, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
-import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class ArticlesService implements OnModuleInit {
-    private articleServiceURL: string;
-
+export class ArticlesService {
     constructor(
-        @Inject('ConfigService')
-        private readonly configService: ConfigService,
         @Inject('HttpService')
         private readonly httpService: HttpService,
         @Inject('UserService')
         private readonly userService: UserService,
     ) { }
 
-    onModuleInit() {
-        this.articleServiceURL = this.configService.get<string>('ARTICLE_SERVICE_URL');
-    }
-
     async create(
         token: string,
         article: Record<string, any>
     ): Promise<object> {
         const { data } = await this.httpService
-            .post(`${this.articleServiceURL}/articles`, article, {
+            .post('articles', article, {
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'application/json',
@@ -41,9 +32,7 @@ export class ArticlesService implements OnModuleInit {
     }
 
     async findAll(): Promise<Array<object>> {
-        const { data } = await this.httpService
-            .get(`${this.articleServiceURL}/articles`)
-            .toPromise();
+        const { data } = await this.httpService.get('articles').toPromise();
 
         let articles: Array<Record<any, any>> = [];
 
@@ -57,9 +46,7 @@ export class ArticlesService implements OnModuleInit {
     }
 
     async findAllByUser(userId: string): Promise<Array<object>> {
-        const { data } = await this.httpService
-            .get(`${this.articleServiceURL}/articles/user/${userId}`)
-            .toPromise();
+        const { data } = await this.httpService.get(`articles/user/${userId}`).toPromise();
 
         let articles: Array<Record<any, any>> = [];
 
@@ -76,9 +63,7 @@ export class ArticlesService implements OnModuleInit {
         let article: any;
 
         try {
-            const { data } = await this.httpService
-                .get(`${this.articleServiceURL}/articles/${slug}`)
-                .toPromise();
+            const { data } = await this.httpService.get(`articles/${slug}`).toPromise();
 
             article = data;
         } catch ({ response }) {
@@ -100,13 +85,9 @@ export class ArticlesService implements OnModuleInit {
         return article;
     }
 
-    async update(
-        token: string,
-        slug: string,
-        article: Record<string, any>
-    ): Promise<object> {
+    async update(token: string, slug: string, article: Record<string, any>): Promise<object> {
         const { data } = await this.httpService
-            .put(`${this.articleServiceURL}/articles/${slug}`, article, {
+            .put(`articles/${slug}`, article, {
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'application/json',
@@ -122,12 +103,9 @@ export class ArticlesService implements OnModuleInit {
         return data;
     }
 
-    async delete(
-        token: string,
-        slug: string
-    ): Promise<void> {
+    async delete(token: string, slug: string): Promise<void> {
         const { data } = await this.httpService
-            .delete(`${this.articleServiceURL}/articles/${slug}`, {
+            .delete(`articles/${slug}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'application/json',

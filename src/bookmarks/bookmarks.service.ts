@@ -4,6 +4,7 @@ import { ClientGrpc } from '@nestjs/microservices';
 import { ArticlesService } from '../articles/articles.service';
 import { BookmarksServiceInterface } from '../services/interfaces/bookmarks-service.interface';
 import { BOOKMARKS_SERVICE_PROVIDER_TOKEN } from 'src/services/providers/bookmarks-service.provider';
+import { BookmarkDto } from './dto/bookmark.dto';
 
 @Injectable()
 export class BookmarksService implements OnModuleInit {
@@ -20,13 +21,15 @@ export class BookmarksService implements OnModuleInit {
         this.bookmarksService = this.client.getService<BookmarksServiceInterface>('BookmarksService');
     }
 
-    async create(token: string, articleSlug: string) {
-        const metadata: Metadata = new Metadata();
-        metadata.add('authorization', token);
+    async create(token: string, bookmarkDto: BookmarkDto) {
+        const { articleSlug } = bookmarkDto;
 
         const { id: articleId } = await this.articlesService.findOne(articleSlug, false) as any;
 
         try {
+            const metadata: Metadata = new Metadata();
+            metadata.add('authorization', token);
+
             return await this.bookmarksService.createBookmark({ articleId }, metadata).toPromise();
         } catch ({ code, metadata, details }) {
             const errorMetadata = (metadata as Metadata);
@@ -55,7 +58,9 @@ export class BookmarksService implements OnModuleInit {
         }
     }
 
-    async delete(token: string, articleSlug: string) {
+    async delete(token: string, bookmarkDto: BookmarkDto) {
+        const { articleSlug } = bookmarkDto;
+
         const { id: articleId } = await this.articlesService.findOne(articleSlug, false) as any;
 
         try {

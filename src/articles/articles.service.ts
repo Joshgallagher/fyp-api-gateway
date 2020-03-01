@@ -49,14 +49,9 @@ export class ArticlesService {
 
     async findAllByUser(userId: string): Promise<Array<object>> {
         const { data } = await this.httpService.get(`articles/user/${userId}`).toPromise();
+        const { name } = await this.userService.findOne(userId);
 
-        let articles: Array<Record<any, any>> = [];
-
-        for (let article of data) {
-            const { name } = await this.userService.findOne(article.user_id);
-
-            articles.push({ ...article, author: name });
-        }
+        const articles = data.map((article: Record<string, any>) => ({ ...article, author: name }));
 
         return articles;
     }

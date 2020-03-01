@@ -47,4 +47,17 @@ export class UserService implements OnModuleInit {
             }
         }
     }
+
+    async findUsersByIds(ids: string[]) {
+        try {
+            return await this.userService.getUsersById({ ids }).toPromise();
+        } catch ({ code, metadata, details }) {
+            // const errorMetadata = (metadata as Metadata);
+            // const message = errorMetadata.get('error')[0];
+
+            // if (details === 'NOT_FOUND_ERROR') {
+            //     throw new NotFoundException(message);
+            // }
+        }
+    }
 }

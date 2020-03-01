@@ -33,13 +33,15 @@ export class ArticlesService {
 
     async findAll(): Promise<Array<object>> {
         const { data } = await this.httpService.get('articles').toPromise();
+        const authorIds: string[] = data.map(({ user_id }) => user_id);
+        const { users } = await this.userService.findUsersByIds(authorIds);
 
         let articles: Array<Record<any, any>> = [];
 
-        for (let article of data) {
-            const { name } = await this.userService.findOne(article.user_id);
+        for (let article in data) {
+            const { name } = users.find(({ id }) => data[article].user_id === id);
 
-            articles.push({ ...article, author: name });
+            articles.push({ ...data[article], author: name });
         }
 
         return articles;
@@ -83,7 +85,7 @@ export class ArticlesService {
         }
 
         return article;
-    }
+    };
 
     async update(token: string, slug: string, article: Record<string, any>): Promise<object> {
         const { data } = await this.httpService

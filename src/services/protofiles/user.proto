@@ -6,6 +6,7 @@ service UserService {
     rpc RegisterUser (RegisterUserRequest) returns (RegisterUserResponse);
     rpc AuthenticateUser (AuthenticateUserRequest) returns (User);
     rpc GetUser (GetUserRequest) returns (User);
+    rpc GetUsersById (GetUsersByIdRequest) returns (GetUsersByIdResponse);
 }
 
 message User {
@@ -30,4 +31,12 @@ message AuthenticateUserRequest {
 
 message GetUserRequest {
     string id = 1;
+}
+
+message GetUsersByIdRequest {
+    repeated string ids = 1 [packed=true];
+}
+
+message GetUsersByIdResponse {
+    repeated User users = 1;
 }

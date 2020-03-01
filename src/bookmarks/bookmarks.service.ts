@@ -1,22 +1,23 @@
 import { Injectable, OnModuleInit, InternalServerErrorException, ConflictException, Inject, NotFoundException } from '@nestjs/common';
-import { ClientGrpc, Client } from '@nestjs/microservices';
-import { bookmarkServiceConfig } from '../services/config/bookmark-service.config';
 import { Metadata } from 'grpc';
-import { ArticlesService } from 'src/articles/articles.service';
+import { ClientGrpc } from '@nestjs/microservices';
+import { ArticlesService } from '../articles/articles.service';
+import { BookmarksServiceInterface } from '../services/interfaces/bookmarks-service.interface';
+import { BOOKMARKS_SERVICE_PROVIDER_TOKEN } from 'src/services/providers/bookmarks-service.provider';
 
 @Injectable()
 export class BookmarksService implements OnModuleInit {
-    @Client(bookmarkServiceConfig)
-    client: ClientGrpc;
-    bookmarksService: any;
+    private bookmarksService: BookmarksServiceInterface;
 
     constructor(
+        @Inject(BOOKMARKS_SERVICE_PROVIDER_TOKEN)
+        private readonly client: ClientGrpc,
         @Inject('ArticlesService')
         private readonly articlesService: ArticlesService
     ) { }
 
     onModuleInit() {
-        this.bookmarksService = this.client.getService('BookmarksService');
+        this.bookmarksService = this.client.getService<BookmarksServiceInterface>('BookmarksService');
     }
 
     async create(token: string, articleSlug: string) {

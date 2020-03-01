@@ -3,21 +3,22 @@ import { ClientProxyFactory } from '@nestjs/microservices';
 import { Transport } from '@nestjs/common/enums/transport.enum';
 import { join } from 'path';
 
-export const USER_SERVICE_PROVIDER_TOKEN = 'USER_SERVICE';
+export const BOOKMARKS_SERVICE_PROVIDER_TOKEN = 'BOOKMARKS_SERVICE';
 
-export const userServiceProvider = {
-    provide: USER_SERVICE_PROVIDER_TOKEN,
+export const bookmarksServiceProvider = {
+    provide: BOOKMARKS_SERVICE_PROVIDER_TOKEN,
     useFactory: (configService: ConfigService) => {
-        const SERVICE_URL = configService.get<string>('USER_SERVICE_URL');
+        const SERVICE_URL = configService.get<string>('BOOKMARKS_SERVICE_URL');
 
         return ClientProxyFactory.create({
             transport: Transport.GRPC,
             options: {
                 url: SERVICE_URL,
-                package: 'user',
-                protoPath: join(__dirname, '../../user.proto')
+                package: 'bookmarks',
+                protoPath: join(__dirname, '../../bookmarks.proto')
             }
         });
     },
     inject: [ConfigService],
 };
+

@@ -1,4 +1,4 @@
-import { Injectable, HttpService, Inject, OnModuleInit, HttpStatus, NotFoundException } from '@nestjs/common';
+import { Injectable, HttpService, Inject, OnModuleInit, HttpStatus, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { ConfigService } from '@nestjs/config';
 
@@ -87,6 +87,8 @@ export class ArticlesService implements OnModuleInit {
             if (statusCode === HttpStatus.NOT_FOUND) {
                 throw new NotFoundException({ message });
             }
+
+            throw new InternalServerErrorException();
         }
 
         if (includeAuthor) {

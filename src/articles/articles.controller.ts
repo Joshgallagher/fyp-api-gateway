@@ -1,5 +1,6 @@
-import { Controller, Get, ParseUUIDPipe, Param, Body, Post, Headers, Put, Delete } from '@nestjs/common';
+import { Controller, Get, ParseUUIDPipe, Param, Body, Post, Headers, Put, Delete, HttpCode, HttpStatus } from '@nestjs/common';
 import { ArticlesService } from './articles.service';
+import { ArticleDto } from './dto/article.dto';
 
 @Controller('articles')
 export class ArticlesController {
@@ -8,9 +9,9 @@ export class ArticlesController {
     @Post()
     create(
         @Headers('authorization') token: string,
-        @Body() article: Record<string, any>
+        @Body() articleDto: ArticleDto
     ): Promise<object> {
-        return this.articlesService.create(token, article);
+        return this.articlesService.create(token, articleDto);
     }
 
     @Get()
@@ -34,12 +35,13 @@ export class ArticlesController {
     update(
         @Headers('authorization') token: string,
         @Param('slug') slug: string,
-        @Body() article: Record<string, any>
+        @Body() articleDto: ArticleDto
     ): Promise<object> {
-        return this.articlesService.update(token, slug, article);
+        return this.articlesService.update(token, slug, articleDto);
     }
 
     @Delete(':slug')
+    @HttpCode(HttpStatus.NO_CONTENT)
     delete(
         @Headers('authorization') token: string,
         @Param('slug') slug: string

@@ -44,26 +44,34 @@ export class ArticlesService {
     return article;
   }
 
-  async findAll(): Promise<Array<object>> {
-    const { data } = await this.httpService.get('articles').toPromise();
-    const authorIds: string[] = data.map(({ userId }) => userId);
-    const { users } = await this.userService.findUsersByIds(authorIds);
+  async findAll(): Promise<object[]> {
+    let articles: any;
+    let authors: any;
 
-    let articles: Array<Record<any, any>> = [];
+    try {
+      const { data } = await this.httpService.get('articles').toPromise();
+      const authorIds: string[] = data.map(({ userId }) => userId);
+      const { users } = await this.userService.findByIds(authorIds);
 
-    for (let article in data) {
-      const { name } = users.find(({ id }) => data[article].userId === id);
-
-      articles.push({ ...data[article], author: name });
+      articles = data;
+      authors = users;
+    } catch (e) {
+      return [];
     }
 
-    return articles;
+    const aggregate = articles.map((article: Record<string, any>) => {
+      const { name } = authors.find(({ id }) => article.userId === id);
+
+      return { ...article, author: name };
+    });
+
+    return aggregate;
   }
 
   async findByIds(articleIds: number[]): Promise<object[]> {
     const { data } = await this.httpService.post(`articles/all`, { articleIds }, { headers: this.headers }).toPromise();
     const authorIds: string[] = data.map(({ userId }) => userId);
-    const { users } = await this.userService.findUsersByIds(authorIds);
+    const { users } = await this.userService.findByIds(authorIds);
 
     let articles: Array<Record<any, any>> = [];
 

@@ -1,4 +1,4 @@
-import { Injectable, UnprocessableEntityException, NotFoundException, UnauthorizedException, OnModuleInit, Inject } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException, NotFoundException, UnauthorizedException, OnModuleInit, Inject, InternalServerErrorException } from '@nestjs/common';
 import { ClientGrpc } from '@nestjs/microservices';
 import { Metadata } from 'grpc';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -32,6 +32,8 @@ export class UserService implements OnModuleInit {
             if (details === 'UNAUTHENTICATED_ERROR') {
                 throw new UnauthorizedException(message);
             }
+
+            throw new InternalServerErrorException();
         }
     }
 
@@ -45,19 +47,12 @@ export class UserService implements OnModuleInit {
             if (details === 'NOT_FOUND_ERROR') {
                 throw new NotFoundException(message);
             }
+
+            throw new InternalServerErrorException();
         }
     }
 
-    async findUsersByIds(ids: string[]) {
-        try {
-            return await this.userService.getUsersById({ ids }).toPromise();
-        } catch ({ code, metadata, details }) {
-            // const errorMetadata = (metadata as Metadata);
-            // const message = errorMetadata.get('error')[0];
-
-            // if (details === 'NOT_FOUND_ERROR') {
-            //     throw new NotFoundException(message);
-            // }
-        }
+    async findByIds(ids: string[]) {
+        return await this.userService.getUsersById({ ids }).toPromise();
     }
 }

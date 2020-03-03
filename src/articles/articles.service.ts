@@ -25,7 +25,7 @@ export class ArticlesService {
     try {
       const headers = Object.assign({}, this.headers, { Authorization: token });
       const { data } = await this.httpService.post('articles', { title, body }, { headers }).toPromise();
-      const { name } = await this.userService.findOne(data.user_id);
+      const { name } = await this.userService.findOne(data.userId);
 
       article = data;
       authorName = name;
@@ -33,7 +33,7 @@ export class ArticlesService {
       const { statusCode, message } = response.data;
 
       if (statusCode === HttpStatus.UNPROCESSABLE_ENTITY) {
-        throw new UnprocessableEntityException({ message });
+        throw new UnprocessableEntityException(message);
       }
 
       throw new InternalServerErrorException();
@@ -46,13 +46,29 @@ export class ArticlesService {
 
   async findAll(): Promise<Array<object>> {
     const { data } = await this.httpService.get('articles').toPromise();
-    const authorIds: string[] = data.map(({ user_id }) => user_id);
+    const authorIds: string[] = data.map(({ userId }) => userId);
     const { users } = await this.userService.findUsersByIds(authorIds);
 
     let articles: Array<Record<any, any>> = [];
 
     for (let article in data) {
-      const { name } = users.find(({ id }) => data[article].user_id === id);
+      const { name } = users.find(({ id }) => data[article].userId === id);
+
+      articles.push({ ...data[article], author: name });
+    }
+
+    return articles;
+  }
+
+  async findByIds(articleIds: number[]): Promise<object[]> {
+    const { data } = await this.httpService.post(`articles/all`, { articleIds }, { headers: this.headers }).toPromise();
+    const authorIds: string[] = data.map(({ userId }) => userId);
+    const { users } = await this.userService.findUsersByIds(authorIds);
+
+    let articles: Array<Record<any, any>> = [];
+
+    for (let article in data) {
+      const { name } = users.find(({ id }) => data[article].userId === id);
 
       articles.push({ ...data[article], author: name });
     }
@@ -87,7 +103,7 @@ export class ArticlesService {
     }
 
     if (includeAuthor) {
-      const { name } = await this.userService.findOne(article.user_id);
+      const { name } = await this.userService.findOne(article.userId);
 
       article['author'] = name;
     }
@@ -104,7 +120,7 @@ export class ArticlesService {
     try {
       const headers = Object.assign({}, this.headers, { Authorization: token });
       const { data } = await this.httpService.put(`articles/${slug}`, { title, body }, { headers }).toPromise();
-      const { name } = await this.userService.findOne(data.user_id);
+      const { name } = await this.userService.findOne(data.userId);
 
       article = data;
       authorName = name;

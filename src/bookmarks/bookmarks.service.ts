@@ -52,7 +52,15 @@ export class BookmarksService implements OnModuleInit {
         metadata.add('authorization', token);
 
         try {
-            return await this.bookmarksService.findAllBookmarks({}, metadata).toPromise();
+            const { bookmarks } = await this.bookmarksService.findAllBookmarks({}, metadata).toPromise();
+
+            if (bookmarks === undefined) {
+                return [];
+            }
+
+            const ids = bookmarks.map(({ articleId }) => articleId);
+
+            return await this.articlesService.findByIds(ids);
         } catch (e) {
             throw new InternalServerErrorException();
         }

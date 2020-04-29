@@ -10,6 +10,7 @@ import { ArticlesModule } from './articles/articles.module';
 import { BookmarksService } from './bookmarks/bookmarks.service';
 import { BookmarksController } from './bookmarks/bookmarks.controller';
 import { BookmarksModule } from './bookmarks/bookmarks.module';
+import { RatingsModule } from './ratings/ratings.module';
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { BookmarksModule } from './bookmarks/bookmarks.module';
     UserModule,
     AuthModule,
     ArticlesModule,
-    BookmarksModule
+    BookmarksModule,
+    RatingsModule
   ],
   controllers: [UserController, AuthController, BookmarksController],
   providers: [UserService, AuthService, BookmarksService],

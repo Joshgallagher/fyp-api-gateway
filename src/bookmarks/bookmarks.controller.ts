@@ -1,5 +1,6 @@
 import { Controller, Get, Headers, Body, Post, ParseIntPipe, Delete } from '@nestjs/common';
 import { BookmarksService } from './bookmarks.service';
+import { BookmarkDto } from './dto/bookmark.dto';
 
 @Controller('bookmarks')
 export class BookmarksController {
@@ -8,9 +9,9 @@ export class BookmarksController {
     @Post()
     create(
         @Headers('authorization') token: string,
-        @Body('articleSlug') articleSlug: string
+        @Body() bookmarkDto: BookmarkDto
     ): Promise<any> {
-        return this.bookmarksService.create(token, articleSlug);
+        return this.bookmarksService.create(token, bookmarkDto);
     }
 
     @Get()
@@ -21,8 +22,8 @@ export class BookmarksController {
     @Delete()
     delete(
         @Headers('authorization') token: string,
-        @Body('articleSlug') articleSlug: string
+        @Body() bookmarkDto: BookmarkDto
     ): Promise<any> {
-        return this.bookmarksService.delete(token, articleSlug);
+        return this.bookmarksService.delete(token, bookmarkDto);
     }
 }

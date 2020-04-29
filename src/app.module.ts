@@ -5,7 +5,7 @@ import { AuthController } from './auth/auth.controller';
 import { AuthModule } from './auth/auth.module';
 import { UserService } from './user/user.service';
 import { AuthService } from './auth/auth.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ArticlesModule } from './articles/articles.module';
 import { BookmarksService } from './bookmarks/bookmarks.service';
 import { BookmarksController } from './bookmarks/bookmarks.controller';

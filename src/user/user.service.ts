@@ -1,18 +1,18 @@
-import { Injectable, UnprocessableEntityException, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { userServiceConfig } from '../services/config/user-service.config';
-import { Client, ClientGrpc } from '@nestjs/microservices';
+import { Injectable, UnprocessableEntityException, NotFoundException, UnauthorizedException, OnModuleInit, Inject, InternalServerErrorException } from '@nestjs/common';
+import { ClientGrpc } from '@nestjs/microservices';
 import { Metadata } from 'grpc';
 import { CreateUserDto } from './dto/create-user.dto';
+import { USER_SERVICE_PROVIDER_TOKEN } from '../services/providers/user-service.provider';
+import { UserServiceInterface } from '../services/interfaces/user-service.interface';
 
 @Injectable()
-export class UserService {
-    @Client(userServiceConfig)
-    client: ClientGrpc;
+export class UserService implements OnModuleInit {
+    private userService: UserServiceInterface;
 
-    userService: any;
+    constructor(@Inject(USER_SERVICE_PROVIDER_TOKEN) private readonly client: ClientGrpc) { }
 
     onModuleInit() {
-        this.userService = this.client.getService('UserService');
+        this.userService = this.client.getService<UserServiceInterface>('UserService');
     }
 
     async create({ name, email, password }: CreateUserDto) {
@@ -32,6 +32,8 @@ export class UserService {
             if (details === 'UNAUTHENTICATED_ERROR') {
                 throw new UnauthorizedException(message);
             }
+
+            throw new InternalServerErrorException();
         }
     }
 
@@ -45,6 +47,12 @@ export class UserService {
             if (details === 'NOT_FOUND_ERROR') {
                 throw new NotFoundException(message);
             }
+
+            throw new InternalServerErrorException();
         }
+    }
+
+    async findByIds(ids: string[]) {
+        return await this.userService.getUsersById({ ids }).toPromise();
     }
 }

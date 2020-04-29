@@ -1,31 +1,35 @@
 import { Injectable, OnModuleInit, InternalServerErrorException, ConflictException, Inject, NotFoundException } from '@nestjs/common';
-import { ClientGrpc, Client } from '@nestjs/microservices';
-import { bookmarkServiceConfig } from '../services/config/bookmark-service.config';
 import { Metadata } from 'grpc';
-import { ArticlesService } from 'src/articles/articles.service';
+import { ClientGrpc } from '@nestjs/microservices';
+import { ArticlesService } from '../articles/articles.service';
+import { BookmarksServiceInterface } from '../services/interfaces/bookmarks-service.interface';
+import { BOOKMARKS_SERVICE_PROVIDER_TOKEN } from 'src/services/providers/bookmarks-service.provider';
+import { BookmarkDto } from './dto/bookmark.dto';
 
 @Injectable()
 export class BookmarksService implements OnModuleInit {
-    @Client(bookmarkServiceConfig)
-    client: ClientGrpc;
-    bookmarksService: any;
+    private bookmarksService: BookmarksServiceInterface;
 
     constructor(
+        @Inject(BOOKMARKS_SERVICE_PROVIDER_TOKEN)
+        private readonly client: ClientGrpc,
         @Inject('ArticlesService')
         private readonly articlesService: ArticlesService
     ) { }
 
     onModuleInit() {
-        this.bookmarksService = this.client.getService('BookmarksService');
+        this.bookmarksService = this.client.getService<BookmarksServiceInterface>('BookmarksService');
     }
 
-    async create(token: string, articleSlug: string) {
-        const metadata: Metadata = new Metadata();
-        metadata.add('authorization', token);
+    async create(token: string, bookmarkDto: BookmarkDto) {
+        const { articleSlug } = bookmarkDto;
 
         const { id: articleId } = await this.articlesService.findOne(articleSlug, false) as any;
 
         try {
+            const metadata: Metadata = new Metadata();
+            metadata.add('authorization', token);
+
             return await this.bookmarksService.createBookmark({ articleId }, metadata).toPromise();
         } catch ({ code, metadata, details }) {
             const errorMetadata = (metadata as Metadata);
@@ -48,13 +52,23 @@ export class BookmarksService implements OnModuleInit {
         metadata.add('authorization', token);
 
         try {
-            return await this.bookmarksService.findAllBookmarks({}, metadata).toPromise();
+            const { bookmarks } = await this.bookmarksService.findAllBookmarks({}, metadata).toPromise();
+
+            if (bookmarks === undefined) {
+                return [];
+            }
+
+            const ids = bookmarks.map(({ articleId }) => articleId);
+
+            return await this.articlesService.findByIds(ids);
         } catch (e) {
             throw new InternalServerErrorException();
         }
     }
 
-    async delete(token: string, articleSlug: string) {
+    async delete(token: string, bookmarkDto: BookmarkDto) {
+        const { articleSlug } = bookmarkDto;
+
         const { id: articleId } = await this.articlesService.findOne(articleSlug, false) as any;
 
         try {

@@ -1,139 +1,174 @@
-import { Injectable, HttpService, Inject, OnModuleInit, HttpStatus, NotFoundException } from '@nestjs/common';
+import { Injectable, HttpService, Inject, OnModuleInit, HttpStatus, NotFoundException, InternalServerErrorException, UnprocessableEntityException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
-import { ConfigService } from '@nestjs/config';
+import { ArticleDto } from './dto/article.dto';
 
 @Injectable()
-export class ArticlesService implements OnModuleInit {
-    private articleServiceURL: string;
+export class ArticlesService {
+  private readonly headers = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  };
 
-    constructor(
-        @Inject('ConfigService')
-        private readonly configService: ConfigService,
-        @Inject('HttpService')
-        private readonly httpService: HttpService,
-        @Inject('UserService')
-        private readonly userService: UserService,
-    ) { }
+  constructor(
+    @Inject('HttpService')
+    private readonly httpService: HttpService,
+    @Inject('UserService')
+    private readonly userService: UserService,
+  ) { }
 
-    onModuleInit() {
-        this.articleServiceURL = this.configService.get<string>('ARTICLE_SERVICE_URL');
+  async create(token: string, articleDto: ArticleDto): Promise<object> {
+    const { title, body } = articleDto;
+
+    let article: Record<string, any>;
+    let authorName: string;
+
+    try {
+      const headers = Object.assign({}, this.headers, { Authorization: token });
+      const { data } = await this.httpService.post('articles', { title, body }, { headers }).toPromise();
+      const { name } = await this.userService.findOne(data.userId);
+
+      article = data;
+      authorName = name;
+    } catch ({ response }) {
+      const { statusCode, message } = response.data;
+
+      if (statusCode === HttpStatus.UNPROCESSABLE_ENTITY) {
+        throw new UnprocessableEntityException(message);
+      }
+
+      throw new InternalServerErrorException();
     }
 
-    async create(
-        token: string,
-        article: Record<string, any>
-    ): Promise<object> {
-        const { data } = await this.httpService
-            .post(`${this.articleServiceURL}/articles`, article, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    Authorization: token
-                }
-            })
-            .toPromise();
+    article['author'] = authorName;
 
-        const { name } = await this.userService.findOne(data.user_id);
+    return article;
+  }
 
-        data['author'] = name;
+  async findAll(): Promise<object[]> {
+    let articles: any;
+    let authors: any;
 
-        return data;
+    try {
+      const { data } = await this.httpService.get('articles').toPromise();
+      const authorIds: string[] = data.map(({ userId }) => userId);
+      const { users } = await this.userService.findByIds(authorIds);
+
+      articles = data;
+      authors = users;
+    } catch (e) {
+      return [];
     }
 
-    async findAll(): Promise<Array<object>> {
-        const { data } = await this.httpService
-            .get(`${this.articleServiceURL}/articles`)
-            .toPromise();
+    const aggregate = articles.map((article: Record<string, any>) => {
+      const { name } = authors.find(({ id }) => article.userId === id);
 
-        let articles: Array<Record<any, any>> = [];
+      return { ...article, author: name };
+    });
 
-        for (let article of data) {
-            const { name } = await this.userService.findOne(article.user_id);
+    return aggregate;
+  }
 
-            articles.push({ ...article, author: name });
-        }
+  async findByIds(articleIds: number[]): Promise<object[]> {
+    const { data } = await this.httpService.post(`articles/all`, { articleIds }, { headers: this.headers }).toPromise();
+    const authorIds: string[] = data.map(({ userId }) => userId);
+    const { users } = await this.userService.findByIds(authorIds);
 
-        return articles;
+    let articles: Array<Record<any, any>> = [];
+
+    for (let article in data) {
+      const { name } = users.find(({ id }) => data[article].userId === id);
+
+      articles.push({ ...data[article], author: name });
     }
 
-    async findAllByUser(userId: string): Promise<Array<object>> {
-        const { data } = await this.httpService
-            .get(`${this.articleServiceURL}/articles/user/${userId}`)
-            .toPromise();
+    return articles;
+  }
 
-        let articles: Array<Record<any, any>> = [];
+  async findAllByUser(userId: string): Promise<Array<object>> {
+    const { data } = await this.httpService.get(`articles/user/${userId}`).toPromise();
+    const { name } = await this.userService.findOne(userId);
 
-        for (let article of data) {
-            const { name } = await this.userService.findOne(article.user_id);
+    const articles = data.map((article: Record<string, any>) => ({ ...article, author: name }));
 
-            articles.push({ ...article, author: name });
-        }
+    return articles;
+  }
 
-        return articles;
+  async findOne(slug: string, includeAuthor: boolean = true): Promise<object> {
+    let article: Record<string, any>;
+
+    try {
+      const { data } = await this.httpService.get(`articles/${slug}`).toPromise();
+
+      article = data;
+    } catch ({ response }) {
+      const { statusCode, message } = response.data;
+
+      if (statusCode === HttpStatus.NOT_FOUND) {
+        throw new NotFoundException({ message });
+      }
+
+      throw new InternalServerErrorException();
     }
 
-    async findOne(slug: string, includeAuthor: boolean = true): Promise<object> {
-        let article: any;
+    if (includeAuthor) {
+      const { name } = await this.userService.findOne(article.userId);
 
-        try {
-            const { data } = await this.httpService
-                .get(`${this.articleServiceURL}/articles/${slug}`)
-                .toPromise();
-
-            article = data;
-        } catch ({ response }) {
-            const { statusCode, message } = response.data;
-
-            if (statusCode === HttpStatus.NOT_FOUND) {
-                throw new NotFoundException({ message });
-            }
-        }
-
-        if (includeAuthor) {
-            const { name } = await this.userService.findOne(article.user_id);
-
-            article['author'] = name;
-        }
-
-        return article;
+      article['author'] = name;
     }
 
-    async update(
-        token: string,
-        slug: string,
-        article: Record<string, any>
-    ): Promise<object> {
-        const { data } = await this.httpService
-            .put(`${this.articleServiceURL}/articles/${slug}`, article, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    Authorization: token
-                }
-            })
-            .toPromise();
+    return article;
+  };
 
-        const { name } = await this.userService.findOne(data.user_id);
+  async update(token: string, slug: string, articleDto: ArticleDto): Promise<object> {
+    const { title, body } = articleDto;
 
-        data['author'] = name;
+    let article: Record<string, any>;
+    let authorName: string;
 
-        return data;
+    try {
+      const headers = Object.assign({}, this.headers, { Authorization: token });
+      const { data } = await this.httpService.put(`articles/${slug}`, { title, body }, { headers }).toPromise();
+      const { name } = await this.userService.findOne(data.userId);
+
+      article = data;
+      authorName = name;
+    } catch ({ response }) {
+      const { statusCode, message } = response.data;
+
+      if (statusCode === HttpStatus.NOT_FOUND) {
+        throw new NotFoundException({ message });
+      }
+
+      if (statusCode === HttpStatus.UNPROCESSABLE_ENTITY) {
+        throw new UnprocessableEntityException({ message });
+      }
+
+      throw new InternalServerErrorException();
     }
 
-    async delete(
-        token: string,
-        slug: string
-    ): Promise<void> {
-        const { data } = await this.httpService
-            .delete(`${this.articleServiceURL}/articles/${slug}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    Authorization: token
-                }
-            })
-            .toPromise();
+    article['author'] = authorName;
 
-        return data;
+    return article;
+  }
+
+  async delete(token: string, slug: string): Promise<void> {
+    let response: any;
+
+    try {
+      const headers = Object.assign({}, this.headers, { Authorization: token });
+      const { data } = await this.httpService.delete(`articles/${slug}`, { headers }).toPromise();
+
+      response = data;
+    } catch ({ response }) {
+      const { statusCode, message } = response.data;
+
+      if (statusCode === HttpStatus.NOT_FOUND) {
+        throw new NotFoundException({ message });
+      }
+
+      throw new InternalServerErrorException();
     }
+
+    return response;
+  }
 }

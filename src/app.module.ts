@@ -10,8 +10,6 @@ import { ArticlesModule } from './articles/articles.module';
 import { BookmarksService } from './bookmarks/bookmarks.service';
 import { BookmarksController } from './bookmarks/bookmarks.controller';
 import { BookmarksModule } from './bookmarks/bookmarks.module';
-import { ClientProxyFactory, Transport } from '@nestjs/microservices';
-import { join } from 'path';
 
 @Module({
   imports: [

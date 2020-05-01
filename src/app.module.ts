@@ -11,6 +11,10 @@ import { BookmarksService } from './bookmarks/bookmarks.service';
 import { BookmarksController } from './bookmarks/bookmarks.controller';
 import { BookmarksModule } from './bookmarks/bookmarks.module';
 import { RatingsModule } from './ratings/ratings.module';
+import { RatingsController } from './ratings/ratings.controller';
+import { RatingsService } from './ratings/ratings.service';
+import { ArticlesController } from './articles/articles.controller';
+import { ArticlesService } from './articles/articles.service';
 
 @Module({
   imports: [
@@ -26,7 +30,7 @@ import { RatingsModule } from './ratings/ratings.module';
     BookmarksModule,
     RatingsModule
   ],
-  controllers: [UserController, AuthController, BookmarksController],
-  providers: [UserService, AuthService, BookmarksService],
+  controllers: [UserController, AuthController, BookmarksController, RatingsController, ArticlesController],
+  providers: [UserService, AuthService, BookmarksService, RatingsService, ArticlesService],
 })
 export class AppModule { }

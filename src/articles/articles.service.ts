@@ -1,6 +1,8 @@
-import { Injectable, HttpService, Inject, OnModuleInit, HttpStatus, NotFoundException, InternalServerErrorException, UnprocessableEntityException } from '@nestjs/common';
+import { Injectable, HttpService, Inject, HttpStatus, NotFoundException, InternalServerErrorException, UnprocessableEntityException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { ArticleDto } from './dto/article.dto';
+import { ConfigService } from '@nestjs/config';
+import { RatingsService } from 'src/ratings/ratings.service';
 
 @Injectable()
 export class ArticlesService {
@@ -8,13 +10,20 @@ export class ArticlesService {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   };
+  private baseUrl: string;
 
   constructor(
     @Inject('HttpService')
     private readonly httpService: HttpService,
+    @Inject('ConfigService')
+    private readonly configService: ConfigService,
     @Inject('UserService')
     private readonly userService: UserService,
-  ) { }
+    @Inject('RatingService')
+    private readonly ratingService: RatingsService
+  ) {
+    this.baseUrl = this.configService.get<string>('ARTICLE_SERVICE_URL');
+  }
 
   async create(token: string, articleDto: ArticleDto): Promise<object> {
     const { title, body } = articleDto;
@@ -24,7 +33,7 @@ export class ArticlesService {
 
     try {
       const headers = Object.assign({}, this.headers, { Authorization: token });
-      const { data } = await this.httpService.post('articles', { title, body }, { headers }).toPromise();
+      const { data } = await this.httpService.post(`${this.baseUrl}/articles`, { title, body }, { headers }).toPromise();
       const { name } = await this.userService.findOne(data.userId);
 
       article = data;
@@ -49,7 +58,7 @@ export class ArticlesService {
     let authors: any;
 
     try {
-      const { data } = await this.httpService.get('articles').toPromise();
+      const { data } = await this.httpService.get(`${this.baseUrl}/articles`).toPromise();
       const authorIds: string[] = data.map(({ userId }) => userId);
       const { users } = await this.userService.findByIds(authorIds);
 
@@ -69,7 +78,7 @@ export class ArticlesService {
   }
 
   async findByIds(articleIds: number[]): Promise<object[]> {
-    const { data } = await this.httpService.post(`articles/all`, { articleIds }, { headers: this.headers }).toPromise();
+    const { data } = await this.httpService.post(`${this.baseUrl}/articles/all`, { articleIds }, { headers: this.headers }).toPromise();
     const authorIds: string[] = data.map(({ userId }) => userId);
     const { users } = await this.userService.findByIds(authorIds);
 
@@ -85,7 +94,7 @@ export class ArticlesService {
   }
 
   async findAllByUser(userId: string): Promise<Array<object>> {
-    const { data } = await this.httpService.get(`articles/user/${userId}`).toPromise();
+    const { data } = await this.httpService.get(`${this.baseUrl}/articles/user/${userId}`).toPromise();
     const { name } = await this.userService.findOne(userId);
 
     const articles = data.map((article: Record<string, any>) => ({ ...article, author: name }));
@@ -97,7 +106,11 @@ export class ArticlesService {
     let article: Record<string, any>;
 
     try {
-      const { data } = await this.httpService.get(`articles/${slug}`).toPromise();
+      const { data } = await this.httpService
+        .get(`${this.baseUrl}/articles/${slug}`)
+        .toPromise();
+      const { rating }: any = await this.ratingService.findOne(data.id);
+      console.log(rating);
 
       article = data;
     } catch ({ response }) {
@@ -127,7 +140,9 @@ export class ArticlesService {
 
     try {
       const headers = Object.assign({}, this.headers, { Authorization: token });
-      const { data } = await this.httpService.put(`articles/${slug}`, { title, body }, { headers }).toPromise();
+      const { data } = await this.httpService
+        .put(`${this.baseUrl}/articles/${slug}`, { title, body }, { headers })
+        .toPromise();
       const { name } = await this.userService.findOne(data.userId);
 
       article = data;
@@ -156,7 +171,9 @@ export class ArticlesService {
 
     try {
       const headers = Object.assign({}, this.headers, { Authorization: token });
-      const { data } = await this.httpService.delete(`articles/${slug}`, { headers }).toPromise();
+      const { data } = await this.httpService
+        .delete(`${this.baseUrl}/articles/${slug}`, { headers })
+        .toPromise();
 
       response = data;
     } catch ({ response }) {

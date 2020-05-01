@@ -1,20 +1,12 @@
-import { Module, HttpModule } from '@nestjs/common';
+import { Module, HttpModule, HttpService } from '@nestjs/common';
 import { RatingsController } from './ratings.controller';
 import { RatingsService } from './ratings.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [
-    HttpModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        baseURL: configService.get<string>('RATING_SERVICE_URL')
-      }),
-      inject: [ConfigService],
-    })
-  ],
+  imports: [HttpModule, ConfigModule],
   controllers: [RatingsController],
   providers: [RatingsService],
-  exports: [HttpModule]
+  exports: [RatingsService]
 })
 export class RatingsModule { }

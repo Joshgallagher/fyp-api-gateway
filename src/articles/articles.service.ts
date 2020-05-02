@@ -19,8 +19,8 @@ export class ArticlesService {
     private readonly configService: ConfigService,
     @Inject('UserService')
     private readonly userService: UserService,
-    @Inject('RatingService')
-    private readonly ratingService: RatingsService
+    @Inject('RatingsService')
+    private readonly ratingsService: RatingsService
   ) {
     this.baseUrl = this.configService.get<string>('ARTICLE_SERVICE_URL');
   }
@@ -56,22 +56,28 @@ export class ArticlesService {
   async findAll(): Promise<object[]> {
     let articles: any;
     let authors: any;
+    let ratings: any;
 
     try {
       const { data } = await this.httpService.get(`${this.baseUrl}/articles`).toPromise();
+      const articleIds: any = data.map(({ id }) => id);
       const authorIds: string[] = data.map(({ userId }) => userId);
+
       const { users } = await this.userService.findByIds(authorIds);
+      const r = await this.ratingsService.findByIds(articleIds);
 
       articles = data;
       authors = users;
+      ratings = r;
     } catch (e) {
       return [];
     }
 
     const aggregate = articles.map((article: Record<string, any>) => {
       const { name } = authors.find(({ id }) => article.userId === id);
+      const { rating } = ratings.find(({ articleId }) => article.id === articleId) || { rating: 0 };
 
-      return { ...article, author: name };
+      return { ...article, author: name, rating };
     });
 
     return aggregate;
@@ -94,25 +100,36 @@ export class ArticlesService {
   }
 
   async findAllByUser(userId: string): Promise<Array<object>> {
-    const { data } = await this.httpService.get(`${this.baseUrl}/articles/user/${userId}`).toPromise();
-    const { name } = await this.userService.findOne(userId);
+    const { data } = await this.httpService
+      .get(`${this.baseUrl}/articles/user/${userId}`)
+      .toPromise();
+    const articleIds: any = data.map(({ id }) => id);
 
-    const articles = data.map((article: Record<string, any>) => ({ ...article, author: name }));
+    const { name } = await this.userService.findOne(userId);
+    const ratings: any = await this.ratingsService.findByIds(articleIds);
+
+    const articles = data.map((article: Record<string, any>) => {
+      const { rating } = ratings.find(({ articleId }) => article.id === articleId) || { rating: 0 };
+
+
+      return { ...article, author: name, rating };
+    });
 
     return articles;
   }
 
   async findOne(slug: string, includeAuthor: boolean = true): Promise<object> {
     let article: Record<string, any>;
+    let rating: number;
 
     try {
       const { data } = await this.httpService
         .get(`${this.baseUrl}/articles/${slug}`)
         .toPromise();
-      const { rating }: any = await this.ratingService.findOne(data.id);
-      console.log(rating);
+      const { rating: r }: any = await this.ratingsService.findOne(data.id);
 
       article = data;
+      rating = r;
     } catch ({ response }) {
       const { statusCode, message } = response.data;
 
@@ -122,6 +139,8 @@ export class ArticlesService {
 
       throw new InternalServerErrorException();
     }
+
+    article['rating'] = rating;
 
     if (includeAuthor) {
       const { name } = await this.userService.findOne(article.userId);
@@ -164,7 +183,7 @@ export class ArticlesService {
     article['author'] = authorName;
 
     return article;
-  }
+  };
 
   async delete(token: string, slug: string): Promise<void> {
     let response: any;

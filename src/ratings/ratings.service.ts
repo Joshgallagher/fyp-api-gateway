@@ -54,6 +54,21 @@ export class RatingsService {
         return response;
     }
 
+    async findByIds(articleIds): Promise<object> {
+        let response: object;
+
+        try {
+            const { data } = await this.httpService
+                .post(`${this.baseUrl}/ratings/users`, { articleIds }).toPromise();
+
+            response = data;
+        } catch ({ response }) {
+            throw new InternalServerErrorException();
+        }
+
+        return response;
+    }
+
     async userArticleRating(token: string, articleId: number): Promise<object> {
         const headers = { Authorization: token };
 

@@ -24,7 +24,6 @@ export class RatingsController {
         @Headers('authorization') token: string,
         @Param('articleId') articleId: number
     ) {
-        console.log('here');
         return this.ratingsService.userArticleRating(token, articleId);
     }
 }

@@ -1,4 +1,4 @@
-import { Injectable, Inject, HttpService, HttpStatus, UnprocessableEntityException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Inject, HttpService, HttpStatus, UnprocessableEntityException, InternalServerErrorException, ForbiddenException } from '@nestjs/common';
 import { CreateRatingDto } from './dto/create-rating.dto';
 import { ConfigService } from '@nestjs/config';
 
@@ -32,6 +32,13 @@ export class RatingsService {
 
             response = data;
         } catch ({ response }) {
+            const { status } = response;
+            const { message } = response.data;
+
+            if (status === HttpStatus.FORBIDDEN) {
+                throw new ForbiddenException({ message });
+            }
+
             throw new InternalServerErrorException();
         }
 

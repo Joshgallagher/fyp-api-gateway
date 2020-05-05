@@ -10,7 +10,7 @@ export class AppService {
         'Accept': 'application/json',
     };
 
-    public hasInclude(includes, include) {
+    public hasInclude(includes: string[], include: string) {
         return includes.indexOf(include) > -1;
     }
 }

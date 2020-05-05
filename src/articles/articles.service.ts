@@ -56,6 +56,12 @@ export class ArticlesService extends AppService {
     return { slug };
   }
 
+  /**
+   * Finds one article by it's slug.
+   * 
+   * @param slug Article slug
+   * @param includes Optional parameter to include external data
+   */
   public async findOne(slug: string, includes: string[] = []): Promise<object> {
     let article: Record<string, any>;
 
@@ -97,6 +103,68 @@ export class ArticlesService extends AppService {
 
     return article;
   }
+
+  /**
+   * Finds all articles.
+   * 
+   * @param includes Optional parameter to include external data
+   */
+  public async findAll(includes: string[] = []): Promise<object[]> {
+    let articles: Record<string, any>[];
+
+    try {
+      const { data } = await this.httpService
+        .get(`${this.serviceBaseUrl}/articles`)
+        .toPromise();
+
+      articles = data;
+    } catch (e) {
+      return [];
+    }
+
+    let agg: any;
+    let authors: any;
+    let ratings: any;
+
+    if (this.hasInclude(includes, this.USER_SERVICE_INCLUDE)) {
+      try {
+        const authorIds: string[] = articles.map(({ userId }) => userId);
+        const { users } = await this.userService.findByIds(authorIds);
+
+        authors = users;
+      } catch (e) {
+        authors = [];
+      }
+
+      agg = articles.map((article: Record<string, any>) => {
+        const { name } = authors.find(({ id }) => article.userId === id)
+          || { name: 'Pondr Author' };
+
+        return { ...article, author: name };
+      });
+    }
+
+    if (this.hasInclude(includes, this.RATINGS_SERVICE_INCLUDE)) {
+      try {
+        const articleIds: any = articles.map(({ id }) => id);
+        const ratingsRequest: any = await this.ratingsService.findByIds(articleIds);
+
+        ratings = ratingsRequest;
+      } catch (e) {
+        ratings = [];
+      }
+
+      agg = articles.map((article: Record<string, any>) => {
+        const { rating } = ratings.find(({ articleId }) => article.id === articleId)
+          || { rating: 0 };
+
+        return { ...article, rating };
+      });
+    }
+
+    return includes.length > 0 ? agg : articles;
+  }
+
 
   // async findAll(): Promise<object[]> {
   //   let articles: any;

@@ -23,10 +23,13 @@ export class ArticlesController {
         ]);
     }
 
-    // @Get()
-    // findAll(): Promise<Array<object>> {
-    //     return this.articlesService.findAll();
-    // }
+    @Get()
+    findAll(): Promise<Array<object>> {
+        return this.articlesService.findAll([
+            this.articlesService.USER_SERVICE_INCLUDE,
+            this.articlesService.RATINGS_SERVICE_INCLUDE
+        ]);
+    }
 
     // @Get('user/:userId')
     // findAllByUser(

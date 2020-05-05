@@ -165,52 +165,67 @@ export class ArticlesService extends AppService {
     return includes.length > 0 ? agg : articles;
   }
 
+  /**
+   * Find articles by the supploed article IDs and returns them.
+   * 
+   * @param articleIds An array of article IDs
+   * @param includes Optional parameter to include external data
+   */
+  public async findByIds(articleIds: number[], includes: string[] = []): Promise<object[]> {
+    const headers = this.requestHeaders;
 
-  // async findAll(): Promise<object[]> {
-  //   let articles: any;
-  //   let authors: any;
-  //   let ratings: any;
+    let articles: Record<string, any>[];
 
-  //   try {
-  //     const { data } = await this.httpService.get(`${this.baseUrl}/articles`).toPromise();
-  //     const articleIds: any = data.map(({ id }) => id);
-  //     const authorIds: string[] = data.map(({ userId }) => userId);
+    try {
+      const { data } = await this.httpService
+        .post(`${this.serviceBaseUrl}/articles/all`, { articleIds }, { headers })
+        .toPromise();
 
-  //     const { users } = await this.userService.findByIds(authorIds);
-  //     const r = await this.ratingsService.findByIds(articleIds);
+      articles = data;
+    } catch (e) {
+      return [];
+    }
 
-  //     articles = data;
-  //     authors = users;
-  //     ratings = r;
-  //   } catch (e) {
-  //     return [];
-  //   }
+    if (this.hasInclude(includes, this.USER_SERVICE_INCLUDE)) {
+      let authors: any;
 
-  //   const aggregate = articles.map((article: Record<string, any>) => {
-  //     const { name } = authors.find(({ id }) => article.userId === id);
-  //     const { rating } = ratings.find(({ articleId }) => article.id === articleId) || { rating: 0 };
+      try {
+        const authorIds: string[] = articles.map(({ userId }) => userId);
+        const { users } = await this.userService.findByIds(authorIds);
 
-  //     return { ...article, author: name, rating };
-  //   });
+        authors = users;
+      } catch (e) {
+        authors = [];
+      }
 
-  //   return aggregate;
-  // }
+      const agg = articles.map((article: Record<string, any>) => {
+        const { name } = authors.find(({ id }) => article.userId === id)
+          || { name: 'Pondr Author' };
 
-  async findByIds(articleIds: number[]): Promise<object[]> {
-    const { data } = await this.httpService.post(`${this.serviceBaseUrl}/articles/all`, { articleIds }, { headers: this.requestHeaders }).toPromise();
-    const authorIds: string[] = data.map(({ userId }) => userId);
-    const { users } = await this.userService.findByIds(authorIds);
+        return { ...article, author: name };
+      });
 
-    let articles: Array<Record<any, any>> = [];
-
-    for (let article in data) {
-      const { name } = users.find(({ id }) => data[article].userId === id);
-
-      articles.push({ ...data[article], author: name });
+      return agg;
     }
 
     return articles;
   }
+
+  // async findByIds(articleIds: number[]): Promise<object[]> {
+  //   const { data } = await this.httpService.post(`${this.serviceBaseUrl}/articles/all`, { articleIds }, { headers: this.requestHeaders }).toPromise();
+  //   const authorIds: string[] = data.map(({ userId }) => userId);
+  //   const { users } = await this.userService.findByIds(authorIds);
+
+  //   let articles: Array<Record<any, any>> = [];
+
+  //   for (let article in data) {
+  //     const { name } = users.find(({ id }) => data[article].userId === id);
+
+  //     articles.push({ ...data[article], author: name });
+  //   }
+
+  //   return articles;
+  // }
 
   // async findAllByUser(userId: string): Promise<Array<object>> {
   //   const { data } = await this.httpService

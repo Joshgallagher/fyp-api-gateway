@@ -1,10 +1,9 @@
 import { Injectable, HttpService, Inject, HttpStatus, NotFoundException, InternalServerErrorException, UnprocessableEntityException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
-import { CreateArticleDto } from './dto/create-article.dto';
 import { ConfigService } from '@nestjs/config';
 import { RatingsService } from 'src/ratings/ratings.service';
 import { AppService } from 'src/app.service';
-import { CreateRatingDto } from 'src/ratings/dto/create-rating.dto';
+import { ArticleDto } from './dto/article.dto';
 
 @Injectable()
 export class ArticlesService extends AppService {
@@ -31,7 +30,7 @@ export class ArticlesService extends AppService {
    * @param token OpenID Connect 1.0 Token
    * @param createArticleDto Containing the article title and body
    */
-  public async create(token: string, createArticleDto: CreateArticleDto): Promise<object> {
+  public async create(token: string, createArticleDto: ArticleDto): Promise<object> {
     const { title, body } = createArticleDto;
     const headers = { ...this.requestHeaders, Authorization: token };
 
@@ -122,11 +121,9 @@ export class ArticlesService extends AppService {
       return [];
     }
 
-    let agg: any;
-    let authors: any;
-    let ratings: any;
-
     if (this.hasInclude(includes, this.USER_SERVICE_INCLUDE)) {
+      let authors: any;
+
       try {
         const authorIds: string[] = articles.map(({ userId }) => userId);
         const { users } = await this.userService.findByIds(authorIds);
@@ -136,7 +133,7 @@ export class ArticlesService extends AppService {
         authors = [];
       }
 
-      agg = articles.map((article: Record<string, any>) => {
+      articles = articles.map((article: Record<string, any>) => {
         const { name } = authors.find(({ id }) => article.userId === id)
           || { name: 'Pondr Author' };
 
@@ -145,6 +142,8 @@ export class ArticlesService extends AppService {
     }
 
     if (this.hasInclude(includes, this.RATINGS_SERVICE_INCLUDE)) {
+      let ratings: any;
+
       try {
         const articleIds: any = articles.map(({ id }) => id);
         const ratingsRequest: any = await this.ratingsService.findByIds(articleIds);
@@ -154,7 +153,7 @@ export class ArticlesService extends AppService {
         ratings = [];
       }
 
-      agg = articles.map((article: Record<string, any>) => {
+      articles = articles.map((article: Record<string, any>) => {
         const { rating } = ratings.find(({ articleId }) => article.id === articleId)
           || { rating: 0 };
 
@@ -162,7 +161,65 @@ export class ArticlesService extends AppService {
       });
     }
 
-    return includes.length > 0 ? agg : articles;
+    return articles;
+  }
+
+  /**
+   * Finds all articles for a particular user.
+   * 
+   * @param userId The users (authors) UUID
+   * @param includes Optional parameter to include external data
+   */
+  public async findAllByUser(userId: string, includes: string[] = []): Promise<Array<object>> {
+    let articles: Record<string, any>[];
+
+    try {
+      const { data } = await this.httpService
+        .get(`${this.serviceBaseUrl}/articles/user/${userId}`)
+        .toPromise();
+
+      articles = data;
+    } catch (e) {
+      return [];
+    }
+
+    if (this.hasInclude(includes, this.USER_SERVICE_INCLUDE)) {
+      let author: string;
+
+      try {
+        const { name } = await this.userService.findOne(userId);
+
+        author = name;
+      } catch (e) {
+        author = 'Pondr Author';
+      }
+
+      articles = articles.map((article: Record<string, any>) => {
+        return { ...article, author };
+      });
+    }
+
+    if (this.hasInclude(includes, this.RATINGS_SERVICE_INCLUDE)) {
+      let ratings: any;
+
+      try {
+        const articleIds: any = articles.map(({ id }) => id);
+        const ratingsRequest: any = await this.ratingsService.findByIds(articleIds);
+
+        ratings = ratingsRequest;
+      } catch (e) {
+        ratings = [];
+      }
+
+      articles = articles.map((article: Record<string, any>) => {
+        const { rating } = ratings.find(({ articleId }) => article.id === articleId)
+          || { rating: 0 };
+
+        return { ...article, rating };
+      });
+    }
+
+    return articles;
   }
 
   /**
@@ -211,128 +268,61 @@ export class ArticlesService extends AppService {
     return articles;
   }
 
-  // async findByIds(articleIds: number[]): Promise<object[]> {
-  //   const { data } = await this.httpService.post(`${this.serviceBaseUrl}/articles/all`, { articleIds }, { headers: this.requestHeaders }).toPromise();
-  //   const authorIds: string[] = data.map(({ userId }) => userId);
-  //   const { users } = await this.userService.findByIds(authorIds);
+  /**
+   * Updates an article.
+   * 
+   * @param token OpenID Connect 1.0 Token
+   * @param slug Article slug
+   * @param updateArticleDto Containing the updated article title and body
+   */
+  public async update(
+    token: string,
+    slug: string,
+    updateArticleDto: ArticleDto
+  ): Promise<void> {
+    const { title, body } = updateArticleDto;
+    const headers = { ...this.requestHeaders, Authorization: token };
 
-  //   let articles: Array<Record<any, any>> = [];
+    try {
+      await this.httpService
+        .put(`${this.serviceBaseUrl}/articles/${slug}`, { title, body }, { headers })
+        .toPromise();
+    } catch ({ response }) {
+      const { statusCode, message } = response.data;
 
-  //   for (let article in data) {
-  //     const { name } = users.find(({ id }) => data[article].userId === id);
+      if (statusCode === HttpStatus.NOT_FOUND) {
+        throw new NotFoundException({ message });
+      }
 
-  //     articles.push({ ...data[article], author: name });
-  //   }
+      if (statusCode === HttpStatus.UNPROCESSABLE_ENTITY) {
+        throw new UnprocessableEntityException({ message });
+      }
 
-  //   return articles;
-  // }
+      throw new InternalServerErrorException();
+    }
+  }
 
-  // async findAllByUser(userId: string): Promise<Array<object>> {
-  //   const { data } = await this.httpService
-  //     .get(`${this.bas}/articles/user/${userId}`)
-  //     .toPromise();
-  //   const articleIds: any = data.map(({ id }) => id);
+  /**
+   * Deletes an article.
+   * 
+   * @param token OpenID Connect 1.0 Token
+   * @param slug Article slug
+   */
+  public async delete(token: string, slug: string): Promise<void> {
+    const headers = { ...this.requestHeaders, Authorization: token };
 
-  //   const { name } = await this.userService.findOne(userId);
-  //   const ratings: any = await this.ratingsService.findByIds(articleIds);
+    try {
+      await this.httpService
+        .delete(`${this.serviceBaseUrl}/articles/${slug}`, { headers })
+        .toPromise();
+    } catch ({ response }) {
+      const { statusCode, message } = response.data;
 
-  //   const articles = data.map((article: Record<string, any>) => {
-  //     const { rating } = ratings.find(({ articleId }) => article.id === articleId) || { rating: 0 };
+      if (statusCode === HttpStatus.NOT_FOUND) {
+        throw new NotFoundException({ message });
+      }
 
-
-  //     return { ...article, author: name, rating };
-  //   });
-
-  //   return articles;
-  // }
-
-  // async findOne(slug: string, includeAuthor: boolean = true): Promise<object> {
-  //   let article: Record<string, any>;
-  //   let rating: number;
-
-  //   try {
-  //     const { data } = await this.httpService
-  //       .get(`${this.serviceBaseUrl}/articles/${slug}`)
-  //       .toPromise();
-  //     const { rating: r }: any = await this.ratingsService.findOne(data.id);
-
-  //     article = data;
-  //     rating = r;
-  //   } catch ({ response }) {
-  //     const { statusCode, message } = response.data;
-
-  //     if (statusCode === HttpStatus.NOT_FOUND) {
-  //       throw new NotFoundException({ message });
-  //     }
-
-  //     throw new InternalServerErrorException();
-  //   }
-
-  //   article['rating'] = rating;
-
-  //   if (includeAuthor) {
-  //     const { name } = await this.userService.findOne(article.userId);
-
-  //     article['author'] = name;
-  //   }
-
-  //   return article;
-  // };
-
-  // async update(token: string, slug: string, articleDto: ArticleDto): Promise<object> {
-  //   const { title, body } = articleDto;
-
-  //   let article: Record<string, any>;
-  //   let authorName: string;
-
-  //   try {
-  //     const headers = Object.assign({}, this.headers, { Authorization: token });
-  //     const { data } = await this.httpService
-  //       .put(`${this.baseUrl}/articles/${slug}`, { title, body }, { headers })
-  //       .toPromise();
-  //     const { name } = await this.userService.findOne(data.userId);
-
-  //     article = data;
-  //     authorName = name;
-  //   } catch ({ response }) {
-  //     const { statusCode, message } = response.data;
-
-  //     if (statusCode === HttpStatus.NOT_FOUND) {
-  //       throw new NotFoundException({ message });
-  //     }
-
-  //     if (statusCode === HttpStatus.UNPROCESSABLE_ENTITY) {
-  //       throw new UnprocessableEntityException({ message });
-  //     }
-
-  //     throw new InternalServerErrorException();
-  //   }
-
-  //   article['author'] = authorName;
-
-  //   return article;
-  // };
-
-  // async delete(token: string, slug: string): Promise<void> {
-  //   let response: any;
-
-  //   try {
-  //     const headers = Object.assign({}, this.headers, { Authorization: token });
-  //     const { data } = await this.httpService
-  //       .delete(`${this.baseUrl}/articles/${slug}`, { headers })
-  //       .toPromise();
-
-  //     response = data;
-  //   } catch ({ response }) {
-  //     const { statusCode, message } = response.data;
-
-  //     if (statusCode === HttpStatus.NOT_FOUND) {
-  //       throw new NotFoundException({ message });
-  //     }
-
-  //     throw new InternalServerErrorException();
-  //   }
-
-  //   return response;
-  // }
+      throw new InternalServerErrorException();
+    }
+  }
 }

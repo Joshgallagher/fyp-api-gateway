@@ -10,7 +10,7 @@ export class ArticlesController {
     @Post()
     create(
         @Headers('authorization') token: string,
-        @Body() createArticleDto: CreateArticleDto
+        @Body() createArticleDto: ArticleDto
     ): Promise<object> {
         return this.articlesService.create(token, createArticleDto);
     }
@@ -31,21 +31,25 @@ export class ArticlesController {
         ]);
     }
 
-    // @Get('user/:userId')
-    // findAllByUser(
-    //     @Param('userId', new ParseUUIDPipe()) userId: string
-    // ): Promise<Array<object>> {
-    //     return this.articlesService.findAllByUser(userId);
-    // }
+    @Get('user/:userId')
+    findAllByUser(
+        @Param('userId', new ParseUUIDPipe()) userId: string
+    ): Promise<Array<object>> {
+        return this.articlesService.findAllByUser(userId, [
+            this.articlesService.USER_SERVICE_INCLUDE,
+            this.articlesService.RATINGS_SERVICE_INCLUDE
+        ]);
+    }
 
-    // @Put(':slug')
-    // update(
-    //     @Headers('authorization') token: string,
-    //     @Param('slug') slug: string,
-    //     @Body() articleDto: ArticleDto
-    // ): Promise<object> {
-    //     return this.articlesService.update(token, slug, articleDto);
-    // }
+    @Put(':slug')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    update(
+        @Headers('authorization') token: string,
+        @Param('slug') slug: string,
+        @Body() articleDto: ArticleDto
+    ): Promise<void> {
+        return this.articlesService.update(token, slug, articleDto);
+    }
 
     // @Delete(':slug')
     // @HttpCode(HttpStatus.NO_CONTENT)

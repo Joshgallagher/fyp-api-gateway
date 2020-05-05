@@ -8,14 +8,18 @@ import { CreateRatingDto } from 'src/ratings/dto/create-rating.dto';
 
 @Injectable()
 export class ArticlesService extends AppService {
-  private readonly httpService: HttpService;
-  private readonly configService: ConfigService;
-  private readonly userService: UserService;
-  private readonly ratingsService: RatingsService;
-
   private serviceBaseUrl: string;
 
-  constructor() {
+  constructor(
+    @Inject('ConfigService')
+    readonly configService: ConfigService,
+    @Inject('HttpService')
+    private readonly httpService: HttpService,
+    @Inject('UserService')
+    private readonly userService: UserService,
+    @Inject('RatingsService')
+    private readonly ratingsService: RatingsService
+  ) {
     super();
 
     this.serviceBaseUrl = this.configService.get<string>('ARTICLE_SERVICE_URL');
@@ -31,14 +35,14 @@ export class ArticlesService extends AppService {
     const { title, body } = createArticleDto;
     const headers = { ...this.requestHeaders, Authorization: token };
 
-    let response: Record<string, any>;
+    let slug: string;
 
     try {
       const { data } = await this.httpService
         .post(`${this.serviceBaseUrl}/articles`, { title, body }, { headers })
         .toPromise();
 
-      response = data;
+      slug = data.slug;
     } catch ({ response }) {
       const { statusCode, message } = response.data;
 
@@ -49,55 +53,50 @@ export class ArticlesService extends AppService {
       throw new InternalServerErrorException();
     }
 
-    return { slug: response.slug };
+    return { slug };
   }
 
-  // private readonly headers = {
-  //   'Content-Type': 'application/json',
-  //   Accept: 'application/json',
-  // };
-  // private baseUrl: string;
+  public async findOne(slug: string, includes: string[] = []): Promise<object> {
+    let article: Record<string, any>;
 
-  // constructor(
-  //   @Inject('HttpService')
-  //   private readonly httpService: HttpService,
-  //   @Inject('ConfigService')
-  //   private readonly configService: ConfigService,
-  //   @Inject('UserService')
-  //   private readonly userService: UserService,
-  //   @Inject('RatingsService')
-  //   private readonly ratingsService: RatingsService
-  // ) {
-  //   this.baseUrl = this.configService.get<string>('ARTICLE_SERVICE_URL');
-  // }
+    try {
+      const { data } = await this.httpService
+        .get(`${this.serviceBaseUrl}/articles/${slug}`)
+        .toPromise();
 
-  // async create(token: string, articleDto: ArticleDto): Promise<object> {
-  //   const { title, body } = articleDto;
+      article = data;
+    } catch ({ response }) {
+      const { statusCode, message } = response.data;
 
-  //   let article: Record<string, any>;
-  //   let authorName: string;
+      if (statusCode === HttpStatus.NOT_FOUND) {
+        throw new NotFoundException({ message });
+      }
 
-  //   try {
-  //     const headers = Object.assign({}, this.headers, { Authorization: token });
-  //     const { data } = await this.httpService.post(`${this.baseUrl}/articles`, { title, body }, { headers }).toPromise();
-  //     const { name } = await this.userService.findOne(data.userId);
+      throw new InternalServerErrorException();
+    }
 
-  //     article = data;
-  //     authorName = name;
-  //   } catch ({ response }) {
-  //     const { statusCode, message } = response.data;
+    if (this.hasInclude(includes, this.USER_SERVICE_INCLUDE)) {
+      try {
+        const { name } = await this.userService.findOne(article.userId);
 
-  //     if (statusCode === HttpStatus.UNPROCESSABLE_ENTITY) {
-  //       throw new UnprocessableEntityException(message);
-  //     }
+        article['author'] = name;
+      } catch (e) {
+        article['author'] = 'Pondr Author';
+      }
+    }
 
-  //     throw new InternalServerErrorException();
-  //   }
+    if (this.hasInclude(includes, this.RATINGS_SERVICE_INCLUDE)) {
+      try {
+        const { rating }: any = await this.ratingsService.findOne(article.id);
 
-  //   article['author'] = authorName;
+        article['rating'] = rating;
+      } catch (e) {
+        article['rating'] = 0;
+      }
+    }
 
-  //   return article;
-  // }
+    return article;
+  }
 
   // async findAll(): Promise<object[]> {
   //   let articles: any;
@@ -129,25 +128,25 @@ export class ArticlesService extends AppService {
   //   return aggregate;
   // }
 
-  // async findByIds(articleIds: number[]): Promise<object[]> {
-  //   const { data } = await this.httpService.post(`${this.baseUrl}/articles/all`, { articleIds }, { headers: this.headers }).toPromise();
-  //   const authorIds: string[] = data.map(({ userId }) => userId);
-  //   const { users } = await this.userService.findByIds(authorIds);
+  async findByIds(articleIds: number[]): Promise<object[]> {
+    const { data } = await this.httpService.post(`${this.serviceBaseUrl}/articles/all`, { articleIds }, { headers: this.requestHeaders }).toPromise();
+    const authorIds: string[] = data.map(({ userId }) => userId);
+    const { users } = await this.userService.findByIds(authorIds);
 
-  //   let articles: Array<Record<any, any>> = [];
+    let articles: Array<Record<any, any>> = [];
 
-  //   for (let article in data) {
-  //     const { name } = users.find(({ id }) => data[article].userId === id);
+    for (let article in data) {
+      const { name } = users.find(({ id }) => data[article].userId === id);
 
-  //     articles.push({ ...data[article], author: name });
-  //   }
+      articles.push({ ...data[article], author: name });
+    }
 
-  //   return articles;
-  // }
+    return articles;
+  }
 
   // async findAllByUser(userId: string): Promise<Array<object>> {
   //   const { data } = await this.httpService
-  //     .get(`${this.baseUrl}/articles/user/${userId}`)
+  //     .get(`${this.bas}/articles/user/${userId}`)
   //     .toPromise();
   //   const articleIds: any = data.map(({ id }) => id);
 
@@ -170,7 +169,7 @@ export class ArticlesService extends AppService {
 
   //   try {
   //     const { data } = await this.httpService
-  //       .get(`${this.baseUrl}/articles/${slug}`)
+  //       .get(`${this.serviceBaseUrl}/articles/${slug}`)
   //       .toPromise();
   //     const { rating: r }: any = await this.ratingsService.findOne(data.id);
 

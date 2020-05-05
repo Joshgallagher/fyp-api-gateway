@@ -1,18 +1,27 @@
 import { Controller, Get, ParseUUIDPipe, Param, Body, Post, Headers, Put, Delete, HttpCode, HttpStatus } from '@nestjs/common';
 import { ArticlesService } from './articles.service';
 import { ArticleDto } from './dto/article.dto';
+import { CreateArticleDto } from './dto/create-article.dto';
 
 @Controller('articles')
 export class ArticlesController {
-    // constructor(private readonly articlesService: ArticlesService) { }
+    constructor(readonly articlesService: ArticlesService) { }
 
-    // @Post()
-    // create(
-    //     @Headers('authorization') token: string,
-    //     @Body() articleDto: ArticleDto
-    // ): Promise<object> {
-    //     return this.articlesService.create(token, articleDto);
-    // }
+    @Post()
+    create(
+        @Headers('authorization') token: string,
+        @Body() createArticleDto: CreateArticleDto
+    ): Promise<object> {
+        return this.articlesService.create(token, createArticleDto);
+    }
+
+    @Get(':slug')
+    findOne(@Param('slug') slug: string): Promise<object> {
+        return this.articlesService.findOne(slug, [
+            this.articlesService.USER_SERVICE_INCLUDE,
+            this.articlesService.RATINGS_SERVICE_INCLUDE
+        ]);
+    }
 
     // @Get()
     // findAll(): Promise<Array<object>> {
@@ -24,11 +33,6 @@ export class ArticlesController {
     //     @Param('userId', new ParseUUIDPipe()) userId: string
     // ): Promise<Array<object>> {
     //     return this.articlesService.findAllByUser(userId);
-    // }
-
-    // @Get(':slug')
-    // findOne(@Param('slug') slug: string): Promise<object> {
-    //     return this.articlesService.findOne(slug);
     // }
 
     // @Put(':slug')

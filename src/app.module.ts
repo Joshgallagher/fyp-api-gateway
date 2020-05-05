@@ -17,6 +17,7 @@ import { RatingsModule } from './ratings/ratings.module';
         : '.env'
     }),
     HttpModule,
+    AppModule,
     UserModule,
     AuthModule,
     ArticlesModule,

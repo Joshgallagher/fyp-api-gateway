@@ -1,7 +1,7 @@
 import { Controller, Get, ParseUUIDPipe, Param, Body, Post, Headers, Put, Delete, HttpCode, HttpStatus } from '@nestjs/common';
 import { ArticlesService } from './articles.service';
 import { ArticleDto } from './dto/article.dto';
-import { CreateArticleDto } from './dto/create-article.dto';
+import { AppService } from '../app.service';
 
 @Controller('articles')
 export class ArticlesController {
@@ -18,16 +18,16 @@ export class ArticlesController {
     @Get(':slug')
     findOne(@Param('slug') slug: string): Promise<object> {
         return this.articlesService.findOne(slug, [
-            this.articlesService.USER_SERVICE_INCLUDE,
-            this.articlesService.RATINGS_SERVICE_INCLUDE
+            AppService.USER_SERVICE_INCLUDE,
+            AppService.RATINGS_SERVICE_INCLUDE
         ]);
     }
 
     @Get()
     findAll(): Promise<Array<object>> {
         return this.articlesService.findAll([
-            this.articlesService.USER_SERVICE_INCLUDE,
-            this.articlesService.RATINGS_SERVICE_INCLUDE
+            AppService.USER_SERVICE_INCLUDE,
+            AppService.RATINGS_SERVICE_INCLUDE
         ]);
     }
 
@@ -36,8 +36,8 @@ export class ArticlesController {
         @Param('userId', new ParseUUIDPipe()) userId: string
     ): Promise<Array<object>> {
         return this.articlesService.findAllByUser(userId, [
-            this.articlesService.USER_SERVICE_INCLUDE,
-            this.articlesService.RATINGS_SERVICE_INCLUDE
+            AppService.USER_SERVICE_INCLUDE,
+            AppService.RATINGS_SERVICE_INCLUDE
         ]);
     }
 
@@ -51,12 +51,12 @@ export class ArticlesController {
         return this.articlesService.update(token, slug, articleDto);
     }
 
-    // @Delete(':slug')
-    // @HttpCode(HttpStatus.NO_CONTENT)
-    // delete(
-    //     @Headers('authorization') token: string,
-    //     @Param('slug') slug: string
-    // ): Promise<void> {
-    //     return this.articlesService.delete(token, slug);
-    // }
+    @Delete(':slug')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    delete(
+        @Headers('authorization') token: string,
+        @Param('slug') slug: string
+    ): Promise<void> {
+        return this.articlesService.delete(token, slug);
+    }
 }

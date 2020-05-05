@@ -1,8 +1,8 @@
 import { Injectable, HttpService, Inject, HttpStatus, NotFoundException, InternalServerErrorException, UnprocessableEntityException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { ConfigService } from '@nestjs/config';
-import { RatingsService } from 'src/ratings/ratings.service';
-import { AppService } from 'src/app.service';
+import { RatingsService } from '../ratings/ratings.service';
+import { AppService } from '../app.service';
 import { ArticleDto } from './dto/article.dto';
 
 @Injectable()
@@ -80,7 +80,7 @@ export class ArticlesService extends AppService {
       throw new InternalServerErrorException();
     }
 
-    if (this.hasInclude(includes, this.USER_SERVICE_INCLUDE)) {
+    if (this.hasInclude(includes, AppService.USER_SERVICE_INCLUDE)) {
       try {
         const { name } = await this.userService.findOne(article.userId);
 
@@ -90,7 +90,7 @@ export class ArticlesService extends AppService {
       }
     }
 
-    if (this.hasInclude(includes, this.RATINGS_SERVICE_INCLUDE)) {
+    if (this.hasInclude(includes, AppService.RATINGS_SERVICE_INCLUDE)) {
       try {
         const { rating }: any = await this.ratingsService.findOne(article.id);
 
@@ -121,7 +121,7 @@ export class ArticlesService extends AppService {
       return [];
     }
 
-    if (this.hasInclude(includes, this.USER_SERVICE_INCLUDE)) {
+    if (this.hasInclude(includes, AppService.USER_SERVICE_INCLUDE)) {
       let authors: any;
 
       try {
@@ -141,7 +141,7 @@ export class ArticlesService extends AppService {
       });
     }
 
-    if (this.hasInclude(includes, this.RATINGS_SERVICE_INCLUDE)) {
+    if (this.hasInclude(includes, AppService.RATINGS_SERVICE_INCLUDE)) {
       let ratings: any;
 
       try {
@@ -183,7 +183,7 @@ export class ArticlesService extends AppService {
       return [];
     }
 
-    if (this.hasInclude(includes, this.USER_SERVICE_INCLUDE)) {
+    if (this.hasInclude(includes, AppService.USER_SERVICE_INCLUDE)) {
       let author: string;
 
       try {
@@ -199,7 +199,7 @@ export class ArticlesService extends AppService {
       });
     }
 
-    if (this.hasInclude(includes, this.RATINGS_SERVICE_INCLUDE)) {
+    if (this.hasInclude(includes, AppService.RATINGS_SERVICE_INCLUDE)) {
       let ratings: any;
 
       try {
@@ -243,7 +243,7 @@ export class ArticlesService extends AppService {
       return [];
     }
 
-    if (this.hasInclude(includes, this.USER_SERVICE_INCLUDE)) {
+    if (this.hasInclude(includes, AppService.USER_SERVICE_INCLUDE)) {
       let authors: any;
 
       try {

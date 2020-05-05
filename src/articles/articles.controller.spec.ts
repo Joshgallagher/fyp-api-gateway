@@ -2,6 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ArticlesController } from './articles.controller';
 import { ArticlesService } from './articles.service';
 import { UserService } from '../user/user.service';
+import { ArticleDto } from './dto/article.dto';
+import * as faker from 'faker';
+import { AppService } from '../app.service';
 
 describe('Articles Controller', () => {
   let controller: ArticlesController;
@@ -11,14 +14,14 @@ describe('Articles Controller', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ArticlesController],
       providers: [
-        UserService,
+        AppService,
         {
           provide: ArticlesService,
           useFactory: () => ({
             create: jest.fn(),
+            findOne: jest.fn(),
             findAll: jest.fn(),
             findAllByUser: jest.fn(),
-            findOne: jest.fn(),
             update: jest.fn(),
             delete: jest.fn(),
           }),
@@ -30,85 +33,86 @@ describe('Articles Controller', () => {
     service = module.get<ArticlesService>(ArticlesService);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('create', () => {
-    it('should create an article', async () => {
-      const article: any = {
-        title: 'Title',
-        body: 'Body',
+    it('An article can be created', () => {
+      const article: ArticleDto = {
+        title: faker.lorem.sentence(),
+        body: faker.lorem.sentence(),
       };
+      const token = faker.random.alphaNumeric();
 
-      const token: string = 'token';
-      const expected: Record<string, string> = {
-        ...article
-      };
+      controller.create(token, article);
 
-      jest.spyOn(service, 'create')
-        .mockImplementation(() => Promise.resolve(expected));
-
-      expect(await controller.create(token, article)).toStrictEqual(expected);
       expect(service.create).toHaveBeenCalledWith(token, article);
     });
   });
 
+  describe('findOne', () => {
+    it('A single article can be found by its slug', () => {
+      const slug: string = faker.lorem.slug();
+      const includes: string[] = [
+        'USER_SERVICE_INCLUDE',
+        'RATINGS_SERVICE_INCLUDE'
+      ];
+
+      controller.findOne(slug);
+
+      expect(service.findOne).toHaveBeenCalledWith(slug, includes);
+    });
+  });
+
   describe('findAll', () => {
-    it('should find all articles', async () => {
-      const expected: object[] = [{}, {}, {}];
+    it('All articles can be found', async () => {
+      const includes: string[] = [
+        'USER_SERVICE_INCLUDE',
+        'RATINGS_SERVICE_INCLUDE'
+      ];
 
-      jest.spyOn(service, 'findAll')
-        .mockImplementation(() => Promise.resolve(expected));
+      controller.findAll();
 
-      expect(await controller.findAll()).toStrictEqual(expected);
-      expect(service.findAll).toBeCalled();
+      expect(service.findAll).toHaveBeenCalledWith(includes);
     });
   });
 
   describe('findAllByUser', () => {
-    it('should find all articles by their author', async () => {
-      const userId = 'jane';
-      const expected = [{ title: 'expected' }];
+    it('All articles by a specific user can be found', async () => {
+      const uuid: string = faker.random.uuid();
+      const includes: string[] = [
+        'USER_SERVICE_INCLUDE',
+        'RATINGS_SERVICE_INCLUDE'
+      ];
 
-      jest.spyOn(service, 'findAllByUser')
-        .mockImplementation(() => Promise.resolve(expected));
+      controller.findAllByUser(uuid);
 
-      expect(await controller.findAllByUser(userId)).toStrictEqual(expected);
-      expect(service.findAllByUser).toHaveBeenCalledWith(userId);
-    });
-  });
-
-  describe('findOne', () => {
-    it("should findOne article by it's slug", async () => {
-      const slug = 'expected';
-      const expected = { title: 'expected' };
-
-      jest.spyOn(service, 'findOne')
-        .mockImplementation(() => Promise.resolve(expected));
-
-      expect(await controller.findOne(slug)).toStrictEqual(expected);
-      expect(service.findOne).toHaveBeenCalledWith(slug);
+      expect(service.findAllByUser).toHaveBeenCalledWith(uuid, includes);
     });
   });
 
   describe('update', () => {
-    it("should update an article by it's slug", async () => {
-      const token: string = 'token';
-      const slug: string = 'expected';
-      const expected: object = { title: 'expected' };
+    it('An article can be updated', async () => {
+      const article: ArticleDto = {
+        title: faker.lorem.sentence(),
+        body: faker.lorem.sentence(),
+      };
+      const token = faker.random.alphaNumeric();
+      const slug: string = faker.lorem.slug();
 
-      jest.spyOn(service, 'update')
-        .mockImplementation(() => Promise.resolve(expected));
+      controller.update(token, slug, article);
 
-      expect(await controller.update(token, slug, expected)).toStrictEqual(expected);
-      expect(service.update).toHaveBeenCalledWith(token, slug, expected);
+      expect(service.update).toHaveBeenCalledWith(token, slug, article);
     });
   });
 
   describe('delete', () => {
-    it("should delete an article by it's slug", async () => {
-      const token: string = 'token';
-      const slug: string = 'to-be-deleted';
+    it('An article can be deleted', async () => {
+      const token = faker.random.alphaNumeric();
+      const slug: string = faker.lorem.slug();
 
-      jest.spyOn(service, 'delete');
-      await controller.delete(token, slug);
+      controller.delete(token, slug);
 
       expect(service.delete).toHaveBeenCalledWith(token, slug);
     });

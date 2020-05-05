@@ -1,9 +1,9 @@
 import { Module, HttpModule } from '@nestjs/common';
 import { ArticlesController } from './articles.controller';
 import { ArticlesService } from './articles.service';
-import { UserModule } from 'src/user/user.module';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { RatingsModule } from 'src/ratings/ratings.module';
+import { UserModule } from '../user/user.module';
+import { ConfigModule } from '@nestjs/config';
+import { RatingsModule } from '../ratings/ratings.module';
 
 @Module({
   imports: [HttpModule, ConfigModule, UserModule, RatingsModule],

@@ -255,14 +255,32 @@ export class ArticlesService extends AppService {
         authors = [];
       }
 
-      const agg = articles.map((article: Record<string, any>) => {
+      articles = articles.map((article: Record<string, any>) => {
         const { name } = authors.find(({ id }) => article.userId === id)
           || { name: 'Pondr Author' };
 
         return { ...article, author: name };
       });
+    }
 
-      return agg;
+    if (this.hasInclude(includes, AppService.RATINGS_SERVICE_INCLUDE)) {
+      let ratings: any;
+
+      try {
+        const articleIds: any = articles.map(({ id }) => id);
+        const ratingsRequest: any = await this.ratingsService.findByIds(articleIds);
+
+        ratings = ratingsRequest;
+      } catch (e) {
+        ratings = [];
+      }
+
+      articles = articles.map((article: Record<string, any>) => {
+        const { rating } = ratings.find(({ articleId }) => article.id === articleId)
+          || { rating: 0 };
+
+        return { ...article, rating };
+      });
     }
 
     return articles;

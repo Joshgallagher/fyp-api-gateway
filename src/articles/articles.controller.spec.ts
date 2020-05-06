@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ArticlesController } from './articles.controller';
 import { ArticlesService } from './articles.service';
-import { UserService } from '../user/user.service';
 import { ArticleDto } from './dto/article.dto';
 import * as faker from 'faker';
 import { AppService } from '../app.service';
@@ -54,19 +53,15 @@ describe('Articles Controller', () => {
   describe('findOne', () => {
     it('A single article can be found by its slug', () => {
       const slug: string = faker.lorem.slug();
-      const includes: string[] = [
-        'USER_SERVICE_INCLUDE',
-        'RATINGS_SERVICE_INCLUDE'
-      ];
 
-      controller.findOne(slug);
+      service.findOne(slug);
 
-      expect(service.findOne).toHaveBeenCalledWith(slug, includes);
+      expect(service.findOne).toHaveBeenCalledWith(slug);
     });
   });
 
   describe('findAll', () => {
-    it('All articles can be found', async () => {
+    it('All articles can be found', () => {
       const includes: string[] = [
         'USER_SERVICE_INCLUDE',
         'RATINGS_SERVICE_INCLUDE'
@@ -79,7 +74,7 @@ describe('Articles Controller', () => {
   });
 
   describe('findAllByUser', () => {
-    it('All articles by a specific user can be found', async () => {
+    it('All articles by a specific user can be found', () => {
       const uuid: string = faker.random.uuid();
       const includes: string[] = [
         'USER_SERVICE_INCLUDE',
@@ -93,7 +88,7 @@ describe('Articles Controller', () => {
   });
 
   describe('update', () => {
-    it('An article can be updated', async () => {
+    it('An article can be updated', () => {
       const article: ArticleDto = {
         title: faker.lorem.sentence(),
         body: faker.lorem.sentence(),
@@ -108,7 +103,7 @@ describe('Articles Controller', () => {
   });
 
   describe('delete', () => {
-    it('An article can be deleted', async () => {
+    it('An article can be deleted', () => {
       const token = faker.random.alphaNumeric();
       const slug: string = faker.lorem.slug();
 

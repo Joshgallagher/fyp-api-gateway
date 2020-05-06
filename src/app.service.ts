@@ -5,7 +5,7 @@ export class AppService {
     public static readonly USER_SERVICE_INCLUDE = 'USER_SERVICE_INCLUDE';
     public static readonly RATINGS_SERVICE_INCLUDE = 'RATINGS_SERVICE_INCLUDE';
 
-    private readonly requestHeaders = {
+    protected readonly requestHeaders = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
     };

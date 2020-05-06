@@ -1,6 +1,6 @@
 import { Controller, Post, Headers, Body, Get, Param } from '@nestjs/common';
 import { RatingsService } from './ratings.service';
-import { CreateRatingDto } from './dto/create-rating.dto';
+import { RatingDto } from './dto/rating.dto';
 
 @Controller('ratings')
 export class RatingsController {
@@ -9,9 +9,9 @@ export class RatingsController {
     @Post()
     create(
         @Headers('authorization') token: string,
-        @Body() createRatingDto: CreateRatingDto
+        @Body() ratingDto: RatingDto
     ) {
-        return this.ratingsService.create(token, createRatingDto);
+        return this.ratingsService.create(token, ratingDto);
     }
 
     @Get(':articleId')

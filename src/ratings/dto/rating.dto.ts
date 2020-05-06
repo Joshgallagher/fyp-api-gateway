@@ -1,3 +1,3 @@
-export class CreateRatingDto {
+export class RatingDto {
     readonly articleId: number;
 }

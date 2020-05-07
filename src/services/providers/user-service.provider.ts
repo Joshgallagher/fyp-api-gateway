@@ -3,8 +3,14 @@ import { ClientProxyFactory } from '@nestjs/microservices';
 import { Transport } from '@nestjs/common/enums/transport.enum';
 import { join } from 'path';
 
+/**
+ * The providers name.
+ */
 export const USER_SERVICE_PROVIDER_TOKEN = 'USER_SERVICE';
 
+/**
+ * Provides a gRPC client instance for the User Service.
+ */
 export const userServiceProvider = {
     provide: USER_SERVICE_PROVIDER_TOKEN,
     useFactory: (configService: ConfigService) => {

@@ -7,12 +7,12 @@ export class UserController {
     constructor(private readonly userService: UserService) { }
 
     @Post()
-    async create(@Body() user: CreateUserDto) {
-        return await this.userService.create(user);
+    create(@Body() user: CreateUserDto) {
+        return this.userService.create(user);
     }
 
     @Get(':id')
-    async findOne(@Param('id') id: string) {
-        return await this.userService.findOne(id);
+    findOne(@Param('id') id: string) {
+        return this.userService.findOne(id);
     }
 }

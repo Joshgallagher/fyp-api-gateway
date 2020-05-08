@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import * as faker from 'faker';
 
 describe('User Controller', () => {
   let controller: UserController;
@@ -14,8 +15,8 @@ describe('User Controller', () => {
         {
           provide: UserService,
           useFactory: () => ({
-            create: jest.fn(() => true),
-            findOne: jest.fn(() => true),
+            create: jest.fn(),
+            findOne: jest.fn(),
           }),
         },
       ],
@@ -26,36 +27,25 @@ describe('User Controller', () => {
   });
 
   describe('create', () => {
-    it('should create (register) a user', async () => {
+    it('A user can be created', () => {
       const user: CreateUserDto = {
-        name: 'Josh',
-        email: 'josh@gmail.com',
-        password: 'secret',
+        name: faker.name.firstName(),
+        email: faker.internet.email(),
+        password: faker.lorem.word(),
       };
 
-      const expected: Record<string, boolean> = { registered: true };
+      controller.create(user);
 
-      jest.spyOn(service, 'create')
-        .mockImplementation(() => Promise.resolve(expected));
-
-      expect(await controller.create(user)).toStrictEqual(expected);
       expect(service.create).toHaveBeenCalledWith(user);
     });
   });
 
   describe('findOne', () => {
-    it('should findOne (get a) user', async () => {
-      const userId: string = '854c9a9b-4a4a-410f-867c-9985c17878d8';
+    it('A user can be found by their UUID', () => {
+      const userId = faker.random.uuid();
 
-      const expected: Record<string, number | string> = {
-        id: userId,
-        name: 'Josh',
-      };
+      controller.findOne(userId);
 
-      jest.spyOn(service, 'findOne')
-        .mockImplementation(() => Promise.resolve(expected));
-
-      expect(await controller.findOne(userId)).toStrictEqual(expected);
       expect(service.findOne).toHaveBeenCalledWith(userId);
     });
   });

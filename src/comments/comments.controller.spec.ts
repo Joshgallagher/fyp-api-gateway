@@ -17,7 +17,8 @@ describe('Comments Controller', () => {
           useFactory: () => ({
             create: jest.fn(),
             findAll: jest.fn(),
-            update: jest.fn()
+            update: jest.fn(),
+            delete: jest.fn()
           })
         }
       ]
@@ -67,6 +68,17 @@ describe('Comments Controller', () => {
       controller.update(token, commentId, comment);
 
       expect(service.update).toBeCalledWith(token, commentId, comment);
+    });
+  });
+
+  describe('delete', () => {
+    it('Delete an existing comment', () => {
+      const token: string = faker.lorem.word();
+      const commentId: string = faker.lorem.slug();
+
+      controller.delete(token, commentId);
+
+      expect(service.delete).toBeCalledWith(token, commentId);
     });
   });
 });

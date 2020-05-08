@@ -104,6 +104,13 @@ export class CommentsService extends AppService {
         return comments;
     }
 
+    /**
+     * Update an article by it's ID.
+     * 
+     * @param token OpenID Connect 1.0 Token
+     * @param id The article ID
+     * @param commenDto Contains the article ID and comment
+     */
     public async update(
         token: string,
         id: string,
@@ -128,6 +135,30 @@ export class CommentsService extends AppService {
 
             if (status === HttpStatus.UNPROCESSABLE_ENTITY) {
                 throw new UnprocessableEntityException({ data });
+            }
+
+            throw new InternalServerErrorException();
+        }
+    }
+
+    /**
+     * Delete an article by it's ID.
+     * 
+     * @param token OpenID Connect 1.0 Token
+     * @param id The article ID
+     */
+    public async delete(token: string, id: string): Promise<void> {
+        const headers = { ...this.requestHeaders, Authorization: token };
+
+        try {
+            await this.httpService
+                .delete(`${this.serviceBaseUrl}/comments/${id}`, { headers })
+                .toPromise();
+        } catch ({ response }) {
+            const { status } = response;
+
+            if (status === HttpStatus.UNAUTHORIZED) {
+                throw new UnauthorizedException();
             }
 
             throw new InternalServerErrorException();

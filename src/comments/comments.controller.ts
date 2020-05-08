@@ -1,4 +1,4 @@
-import { Controller, ParseIntPipe, Get, Param, Post, Body, Headers, Put, HttpCode, HttpStatus, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, ParseIntPipe, Get, Param, Post, Body, Headers, Put, HttpCode, HttpStatus, ParseUUIDPipe, Delete } from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { CommentDto } from './dto/comment.dto';
 
@@ -29,5 +29,14 @@ export class CommentsController {
         @Body() commenDto: CommentDto
     ): Promise<void> {
         return this.commentsService.update(token, id, commenDto);
+    }
+
+    @Delete(':id')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    delete(
+        @Headers('authorization') token: string,
+        @Param('id') id: string
+    ): Promise<void> {
+        return this.commentsService.delete(token, id);
     }
 }

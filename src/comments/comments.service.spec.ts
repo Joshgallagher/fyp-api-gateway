@@ -103,4 +103,16 @@ describe('CommentsService', () => {
       expect(httpService.put).toHaveBeenCalled();
     });
   });
+
+  describe('delete', () => {
+    it('Delete an existing comment', async () => {
+      const token: string = faker.lorem.word();
+      const commentId = faker.random.uuid();
+
+      httpService.delete = jest.fn(() => of({})) as any;
+      await service.delete(token, commentId);
+
+      expect(httpService.delete).toHaveBeenCalled();
+    });
+  });
 });

@@ -28,7 +28,7 @@ export class ArticlesService extends AppService {
    * Creates an article from the provided title and body.
    * 
    * @param token OpenID Connect 1.0 Token
-   * @param createArticleDto Containing the article title and body
+   * @param createArticleDto Contains the article title and body
    */
   public async create(token: string, createArticleDto: ArticleDto): Promise<object> {
     const { title, body } = createArticleDto;

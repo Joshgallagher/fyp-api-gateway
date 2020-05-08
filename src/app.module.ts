@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ArticlesModule } from './articles/articles.module';
 import { BookmarksModule } from './bookmarks/bookmarks.module';
 import { RatingsModule } from './ratings/ratings.module';
+import { CommentsModule } from './comments/comments.module';
 
 @Module({
   imports: [
@@ -20,7 +21,8 @@ import { RatingsModule } from './ratings/ratings.module';
     AuthModule,
     ArticlesModule,
     BookmarksModule,
-    RatingsModule
+    RatingsModule,
+    CommentsModule
   ]
 })
 export class AppModule { }

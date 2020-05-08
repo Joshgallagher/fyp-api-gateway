@@ -103,4 +103,34 @@ export class CommentsService extends AppService {
 
         return comments;
     }
+
+    public async update(
+        token: string,
+        id: string,
+        commenDto: CommentDto
+    ): Promise<void> {
+        const { articleId, comment } = commenDto;
+        const headers = { ...this.requestHeaders, Authorization: token };
+
+        try {
+            await this.httpService
+                .put(`${this.serviceBaseUrl}/comments/${id}`,
+                    { articleId, comment },
+                    { headers }
+                )
+                .toPromise();
+        } catch ({ response }) {
+            const { status, data } = response;
+
+            if (status === HttpStatus.UNAUTHORIZED) {
+                throw new UnauthorizedException();
+            }
+
+            if (status === HttpStatus.UNPROCESSABLE_ENTITY) {
+                throw new UnprocessableEntityException({ data });
+            }
+
+            throw new InternalServerErrorException();
+        }
+    }
 }

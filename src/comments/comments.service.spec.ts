@@ -87,4 +87,20 @@ describe('CommentsService', () => {
       expect(findAll).toEqual([{ userId, name }]);
     });
   });
+
+  describe('update', () => {
+    it('Update an existing comment', async () => {
+      const token: string = faker.lorem.word();
+      const commentId = faker.random.uuid();
+      const commentDto: CommentDto = {
+        articleId: faker.random.number(),
+        comment: faker.lorem.sentence()
+      };
+
+      httpService.put = jest.fn(() => of({})) as any;
+      await service.update(token, commentId, commentDto);
+
+      expect(httpService.put).toHaveBeenCalled();
+    });
+  });
 });

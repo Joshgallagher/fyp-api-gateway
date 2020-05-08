@@ -16,7 +16,8 @@ describe('Comments Controller', () => {
           provide: CommentsService,
           useFactory: () => ({
             create: jest.fn(),
-            findAll: jest.fn()
+            findAll: jest.fn(),
+            update: jest.fn()
           })
         }
       ]
@@ -51,6 +52,21 @@ describe('Comments Controller', () => {
       controller.findAll(id);
 
       expect(service.findAll).toBeCalledWith(id);
+    });
+  });
+
+  describe('update', () => {
+    it('Update an existing comment', () => {
+      const token: string = faker.lorem.word();
+      const commentId: string = faker.lorem.slug();
+      const comment: CommentDto = {
+        articleId: faker.random.number(),
+        comment: faker.lorem.sentence()
+      };
+
+      controller.update(token, commentId, comment);
+
+      expect(service.update).toBeCalledWith(token, commentId, comment);
     });
   });
 });

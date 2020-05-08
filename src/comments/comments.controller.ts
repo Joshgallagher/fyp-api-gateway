@@ -1,4 +1,4 @@
-import { Controller, ParseIntPipe, Get, Param, Post, Body, Headers, Put, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, ParseIntPipe, Get, Param, Post, Body, Headers, Put, HttpCode, HttpStatus, ParseUUIDPipe } from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { CommentDto } from './dto/comment.dto';
 
@@ -19,5 +19,15 @@ export class CommentsController {
         @Param('id', new ParseIntPipe()) id: number
     ): Promise<object[]> {
         return this.commentsService.findAll(id);
+    }
+
+    @Put(':id')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    update(
+        @Headers('authorization') token: string,
+        @Param('id') id: string,
+        @Body() commenDto: CommentDto
+    ): Promise<void> {
+        return this.commentsService.update(token, id, commenDto);
     }
 }

@@ -303,4 +303,16 @@ describe('ArticlesService', () => {
       expect(httpService.put).toHaveBeenCalled();
     });
   });
+
+  describe('delete', () => {
+    it('An article can be deleted', async () => {
+      const token = faker.random.alphaNumeric();
+      const slug: string = faker.lorem.slug();
+
+      httpService.delete = jest.fn(() => of({})) as any;
+      await service.delete(token, slug);
+
+      expect(httpService.delete).toHaveBeenCalled();
+    });
+  });
 });

@@ -1,43 +1,47 @@
 import { Injectable, HttpService, Inject, HttpStatus, NotFoundException, InternalServerErrorException, UnprocessableEntityException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
-import { ArticleDto } from './dto/article.dto';
 import { ConfigService } from '@nestjs/config';
-import { RatingsService } from 'src/ratings/ratings.service';
+import { RatingsService } from '../ratings/ratings.service';
+import { AppService } from '../app.service';
+import { ArticleDto } from './dto/article.dto';
 
 @Injectable()
-export class ArticlesService {
-  private readonly headers = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-  };
-  private baseUrl: string;
+export class ArticlesService extends AppService {
+  private serviceBaseUrl: string;
 
   constructor(
+    @Inject('ConfigService')
+    readonly configService: ConfigService,
     @Inject('HttpService')
     private readonly httpService: HttpService,
-    @Inject('ConfigService')
-    private readonly configService: ConfigService,
     @Inject('UserService')
     private readonly userService: UserService,
     @Inject('RatingsService')
     private readonly ratingsService: RatingsService
   ) {
-    this.baseUrl = this.configService.get<string>('ARTICLE_SERVICE_URL');
+    super();
+
+    this.serviceBaseUrl = this.configService.get<string>('ARTICLE_SERVICE_URL');
   }
 
-  async create(token: string, articleDto: ArticleDto): Promise<object> {
-    const { title, body } = articleDto;
+  /**
+   * Creates an article from the provided title and body.
+   * 
+   * @param token OpenID Connect 1.0 Token
+   * @param createArticleDto Containing the article title and body
+   */
+  public async create(token: string, createArticleDto: ArticleDto): Promise<object> {
+    const { title, body } = createArticleDto;
+    const headers = { ...this.requestHeaders, Authorization: token };
 
-    let article: Record<string, any>;
-    let authorName: string;
+    let slug: string;
 
     try {
-      const headers = Object.assign({}, this.headers, { Authorization: token });
-      const { data } = await this.httpService.post(`${this.baseUrl}/articles`, { title, body }, { headers }).toPromise();
-      const { name } = await this.userService.findOne(data.userId);
+      const { data } = await this.httpService
+        .post(`${this.serviceBaseUrl}/articles`, { title, body }, { headers })
+        .toPromise();
 
-      article = data;
-      authorName = name;
+      slug = data.slug;
     } catch ({ response }) {
       const { statusCode, message } = response.data;
 
@@ -48,88 +52,24 @@ export class ArticlesService {
       throw new InternalServerErrorException();
     }
 
-    article['author'] = authorName;
-
-    return article;
+    return { slug };
   }
 
-  async findAll(): Promise<object[]> {
-    let articles: any;
-    let authors: any;
-    let ratings: any;
-
-    try {
-      const { data } = await this.httpService.get(`${this.baseUrl}/articles`).toPromise();
-      const articleIds: any = data.map(({ id }) => id);
-      const authorIds: string[] = data.map(({ userId }) => userId);
-
-      const { users } = await this.userService.findByIds(authorIds);
-      const r = await this.ratingsService.findByIds(articleIds);
-
-      articles = data;
-      authors = users;
-      ratings = r;
-    } catch (e) {
-      return [];
-    }
-
-    const aggregate = articles.map((article: Record<string, any>) => {
-      const { name } = authors.find(({ id }) => article.userId === id);
-      const { rating } = ratings.find(({ articleId }) => article.id === articleId) || { rating: 0 };
-
-      return { ...article, author: name, rating };
-    });
-
-    return aggregate;
-  }
-
-  async findByIds(articleIds: number[]): Promise<object[]> {
-    const { data } = await this.httpService.post(`${this.baseUrl}/articles/all`, { articleIds }, { headers: this.headers }).toPromise();
-    const authorIds: string[] = data.map(({ userId }) => userId);
-    const { users } = await this.userService.findByIds(authorIds);
-
-    let articles: Array<Record<any, any>> = [];
-
-    for (let article in data) {
-      const { name } = users.find(({ id }) => data[article].userId === id);
-
-      articles.push({ ...data[article], author: name });
-    }
-
-    return articles;
-  }
-
-  async findAllByUser(userId: string): Promise<Array<object>> {
-    const { data } = await this.httpService
-      .get(`${this.baseUrl}/articles/user/${userId}`)
-      .toPromise();
-    const articleIds: any = data.map(({ id }) => id);
-
-    const { name } = await this.userService.findOne(userId);
-    const ratings: any = await this.ratingsService.findByIds(articleIds);
-
-    const articles = data.map((article: Record<string, any>) => {
-      const { rating } = ratings.find(({ articleId }) => article.id === articleId) || { rating: 0 };
-
-
-      return { ...article, author: name, rating };
-    });
-
-    return articles;
-  }
-
-  async findOne(slug: string, includeAuthor: boolean = true): Promise<object> {
+  /**
+   * Finds one article by it's slug.
+   * 
+   * @param slug Article slug
+   * @param includes Optional parameter to include external data
+   */
+  public async findOne(slug: string, includes: string[] = []): Promise<object> {
     let article: Record<string, any>;
-    let rating: number;
 
     try {
       const { data } = await this.httpService
-        .get(`${this.baseUrl}/articles/${slug}`)
+        .get(`${this.serviceBaseUrl}/articles/${slug}`)
         .toPromise();
-      const { rating: r }: any = await this.ratingsService.findOne(data.id);
 
       article = data;
-      rating = r;
     } catch ({ response }) {
       const { statusCode, message } = response.data;
 
@@ -140,32 +80,231 @@ export class ArticlesService {
       throw new InternalServerErrorException();
     }
 
-    article['rating'] = rating;
+    if (this.hasInclude(includes, AppService.USER_SERVICE_INCLUDE)) {
+      try {
+        const { name } = await this.userService.findOne(article.userId);
 
-    if (includeAuthor) {
-      const { name } = await this.userService.findOne(article.userId);
+        article['author'] = name;
+      } catch (e) {
+        article['author'] = 'Pondr Author';
+      }
+    }
 
-      article['author'] = name;
+    if (this.hasInclude(includes, AppService.RATINGS_SERVICE_INCLUDE)) {
+      try {
+        const { rating }: any = await this.ratingsService.findOne(article.id);
+
+        article['rating'] = rating;
+      } catch (e) {
+        article['rating'] = 0;
+      }
     }
 
     return article;
-  };
+  }
 
-  async update(token: string, slug: string, articleDto: ArticleDto): Promise<object> {
-    const { title, body } = articleDto;
-
-    let article: Record<string, any>;
-    let authorName: string;
+  /**
+   * Finds all articles.
+   * 
+   * @param includes Optional parameter to include external data
+   */
+  public async findAll(includes: string[] = []): Promise<object[]> {
+    let articles: Record<string, any>[];
 
     try {
-      const headers = Object.assign({}, this.headers, { Authorization: token });
       const { data } = await this.httpService
-        .put(`${this.baseUrl}/articles/${slug}`, { title, body }, { headers })
+        .get(`${this.serviceBaseUrl}/articles`)
         .toPromise();
-      const { name } = await this.userService.findOne(data.userId);
 
-      article = data;
-      authorName = name;
+      articles = data;
+    } catch (e) {
+      return [];
+    }
+
+    if (this.hasInclude(includes, AppService.USER_SERVICE_INCLUDE)) {
+      let authors: any;
+
+      try {
+        const authorIds: string[] = articles.map(({ userId }) => userId);
+        const { users } = await this.userService.findByIds(authorIds);
+
+        authors = users;
+      } catch (e) {
+        authors = [];
+      }
+
+      articles = articles.map((article: Record<string, any>) => {
+        const { name } = authors.find(({ id }) => article.userId === id)
+          || { name: 'Pondr Author' };
+
+        return { ...article, author: name };
+      });
+    }
+
+    if (this.hasInclude(includes, AppService.RATINGS_SERVICE_INCLUDE)) {
+      let ratings: any;
+
+      try {
+        const articleIds: any = articles.map(({ id }) => id);
+        const ratingsRequest: any = await this.ratingsService.findByIds(articleIds);
+
+        ratings = ratingsRequest;
+      } catch (e) {
+        ratings = [];
+      }
+
+      articles = articles.map((article: Record<string, any>) => {
+        const { rating } = ratings.find(({ articleId }) => article.id === articleId)
+          || { rating: 0 };
+
+        return { ...article, rating };
+      });
+    }
+
+    return articles;
+  }
+
+  /**
+   * Finds all articles for a particular user.
+   * 
+   * @param userId The users (authors) UUID
+   * @param includes Optional parameter to include external data
+   */
+  public async findAllByUser(userId: string, includes: string[] = []): Promise<Array<object>> {
+    let articles: Record<string, any>[];
+
+    try {
+      const { data } = await this.httpService
+        .get(`${this.serviceBaseUrl}/articles/user/${userId}`)
+        .toPromise();
+
+      articles = data;
+    } catch (e) {
+      return [];
+    }
+
+    if (this.hasInclude(includes, AppService.USER_SERVICE_INCLUDE)) {
+      let author: string;
+
+      try {
+        const { name } = await this.userService.findOne(userId);
+
+        author = name;
+      } catch (e) {
+        author = 'Pondr Author';
+      }
+
+      articles = articles.map((article: Record<string, any>) => {
+        return { ...article, author };
+      });
+    }
+
+    if (this.hasInclude(includes, AppService.RATINGS_SERVICE_INCLUDE)) {
+      let ratings: any;
+
+      try {
+        const articleIds: any = articles.map(({ id }) => id);
+        const ratingsRequest: any = await this.ratingsService.findByIds(articleIds);
+
+        ratings = ratingsRequest;
+      } catch (e) {
+        ratings = [];
+      }
+
+      articles = articles.map((article: Record<string, any>) => {
+        const { rating } = ratings.find(({ articleId }) => article.id === articleId)
+          || { rating: 0 };
+
+        return { ...article, rating };
+      });
+    }
+
+    return articles;
+  }
+
+  /**
+   * Find articles by the supploed article IDs and returns them.
+   * 
+   * @param articleIds An array of article IDs
+   * @param includes Optional parameter to include external data
+   */
+  public async findByIds(articleIds: number[], includes: string[] = []): Promise<object[]> {
+    const headers = this.requestHeaders;
+
+    let articles: Record<string, any>[];
+
+    try {
+      const { data } = await this.httpService
+        .post(`${this.serviceBaseUrl}/articles/all`, { articleIds }, { headers })
+        .toPromise();
+
+      articles = data;
+    } catch (e) {
+      return [];
+    }
+
+    if (this.hasInclude(includes, AppService.USER_SERVICE_INCLUDE)) {
+      let authors: any;
+
+      try {
+        const authorIds: string[] = articles.map(({ userId }) => userId);
+        const { users } = await this.userService.findByIds(authorIds);
+
+        authors = users;
+      } catch (e) {
+        authors = [];
+      }
+
+      articles = articles.map((article: Record<string, any>) => {
+        const { name } = authors.find(({ id }) => article.userId === id)
+          || { name: 'Pondr Author' };
+
+        return { ...article, author: name };
+      });
+    }
+
+    if (this.hasInclude(includes, AppService.RATINGS_SERVICE_INCLUDE)) {
+      let ratings: any;
+
+      try {
+        const articleIds: any = articles.map(({ id }) => id);
+        const ratingsRequest: any = await this.ratingsService.findByIds(articleIds);
+
+        ratings = ratingsRequest;
+      } catch (e) {
+        ratings = [];
+      }
+
+      articles = articles.map((article: Record<string, any>) => {
+        const { rating } = ratings.find(({ articleId }) => article.id === articleId)
+          || { rating: 0 };
+
+        return { ...article, rating };
+      });
+    }
+
+    return articles;
+  }
+
+  /**
+   * Updates an article.
+   * 
+   * @param token OpenID Connect 1.0 Token
+   * @param slug Article slug
+   * @param updateArticleDto Containing the updated article title and body
+   */
+  public async update(
+    token: string,
+    slug: string,
+    updateArticleDto: ArticleDto
+  ): Promise<void> {
+    const { title, body } = updateArticleDto;
+    const headers = { ...this.requestHeaders, Authorization: token };
+
+    try {
+      await this.httpService
+        .put(`${this.serviceBaseUrl}/articles/${slug}`, { title, body }, { headers })
+        .toPromise();
     } catch ({ response }) {
       const { statusCode, message } = response.data;
 
@@ -179,22 +318,21 @@ export class ArticlesService {
 
       throw new InternalServerErrorException();
     }
+  }
 
-    article['author'] = authorName;
-
-    return article;
-  };
-
-  async delete(token: string, slug: string): Promise<void> {
-    let response: any;
+  /**
+   * Deletes an article.
+   * 
+   * @param token OpenID Connect 1.0 Token
+   * @param slug Article slug
+   */
+  public async delete(token: string, slug: string): Promise<void> {
+    const headers = { ...this.requestHeaders, Authorization: token };
 
     try {
-      const headers = Object.assign({}, this.headers, { Authorization: token });
-      const { data } = await this.httpService
-        .delete(`${this.baseUrl}/articles/${slug}`, { headers })
+      await this.httpService
+        .delete(`${this.serviceBaseUrl}/articles/${slug}`, { headers })
         .toPromise();
-
-      response = data;
     } catch ({ response }) {
       const { statusCode, message } = response.data;
 
@@ -204,7 +342,5 @@ export class ArticlesService {
 
       throw new InternalServerErrorException();
     }
-
-    return response;
   }
 }

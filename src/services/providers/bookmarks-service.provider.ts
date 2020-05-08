@@ -3,8 +3,14 @@ import { ClientProxyFactory } from '@nestjs/microservices';
 import { Transport } from '@nestjs/common/enums/transport.enum';
 import { join } from 'path';
 
+/**
+ * The providers name.
+ */
 export const BOOKMARKS_SERVICE_PROVIDER_TOKEN = 'BOOKMARKS_SERVICE';
 
+/**
+ * Provides a gRPC client instance for the Bookmark Service.
+ */
 export const bookmarksServiceProvider = {
     provide: BOOKMARKS_SERVICE_PROVIDER_TOKEN,
     useFactory: (configService: ConfigService) => {

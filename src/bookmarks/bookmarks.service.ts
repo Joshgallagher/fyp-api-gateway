@@ -3,8 +3,9 @@ import { Metadata } from 'grpc';
 import { ClientGrpc } from '@nestjs/microservices';
 import { ArticlesService } from '../articles/articles.service';
 import { BookmarksServiceInterface } from '../services/interfaces/bookmarks-service.interface';
-import { BOOKMARKS_SERVICE_PROVIDER_TOKEN } from 'src/services/providers/bookmarks-service.provider';
+import { BOOKMARKS_SERVICE_PROVIDER_TOKEN } from '../services/providers/bookmarks-service.provider';
 import { BookmarkDto } from './dto/bookmark.dto';
+import { AppService } from '../app.service';
 
 @Injectable()
 export class BookmarksService implements OnModuleInit {
@@ -18,19 +19,34 @@ export class BookmarksService implements OnModuleInit {
     ) { }
 
     onModuleInit() {
-        this.bookmarksService = this.client.getService<BookmarksServiceInterface>('BookmarksService');
+        this.bookmarksService = this.client
+            .getService<BookmarksServiceInterface>('BookmarksService');
     }
 
-    async create(token: string, bookmarkDto: BookmarkDto) {
+    /**
+     * Creates a bookmark of a given article.
+     * 
+     * @param token OpenID Connect 1.0 Token
+     * @param bookmarkDto Contains the article IDs
+     */
+    public async create(
+        token: string,
+        bookmarkDto: BookmarkDto
+    ): Promise<object> {
         const { articleSlug } = bookmarkDto;
 
-        const { id: articleId } = await this.articlesService.findOne(articleSlug, false) as any;
+        const { id }: Record<string, any> = await this.articlesService
+            .findOne(articleSlug);
 
         try {
             const metadata: Metadata = new Metadata();
             metadata.add('authorization', token);
 
-            return await this.bookmarksService.createBookmark({ articleId }, metadata).toPromise();
+            const create = await this.bookmarksService
+                .createBookmark({ articleId: id }, metadata)
+                .toPromise();
+
+            return create;
         } catch ({ code, metadata, details }) {
             const errorMetadata = (metadata as Metadata);
             const message = errorMetadata.get('error')[0];
@@ -47,35 +63,59 @@ export class BookmarksService implements OnModuleInit {
         }
     }
 
-    async findAll(token: string) {
-        const metadata: Metadata = new Metadata();
-        metadata.add('authorization', token);
-
-        try {
-            const { bookmarks } = await this.bookmarksService.findAllBookmarks({}, metadata).toPromise();
-
-            if (bookmarks === undefined) {
-                return [];
-            }
-
-            const ids = bookmarks.map(({ articleId }) => articleId);
-
-            return await this.articlesService.findByIds(ids);
-        } catch (e) {
-            throw new InternalServerErrorException();
-        }
-    }
-
-    async delete(token: string, bookmarkDto: BookmarkDto) {
-        const { articleSlug } = bookmarkDto;
-
-        const { id: articleId } = await this.articlesService.findOne(articleSlug, false) as any;
+    /**
+     * The currently authenticating users bookmarks can be retrieved.
+     * 
+     * @param token OpenID Connect 1.0 Token
+     */
+    public async findAll(token: string) {
+        let userBookmarks: Record<string, any>[];
 
         try {
             const metadata: Metadata = new Metadata();
             metadata.add('authorization', token);
 
-            return await this.bookmarksService.deleteBookmark({ articleId }, metadata).toPromise();
+            const { bookmarks } = await this.bookmarksService
+                .findAllBookmarks({}, metadata)
+                .toPromise();
+
+            if (bookmarks === undefined) {
+                return [];
+            }
+
+            userBookmarks = bookmarks;
+        } catch (e) {
+            throw new InternalServerErrorException();
+        }
+
+        const bookmarkIds = userBookmarks.map(({ articleId }) => articleId);
+        const aggregate = await this.articlesService.findByIds(bookmarkIds, [
+            AppService.USER_SERVICE_INCLUDE,
+            AppService.RATINGS_SERVICE_INCLUDE
+        ]);
+
+        return aggregate;
+    }
+
+    /**
+     * Deletes a users bookmark.
+     * 
+     * @param token OpenID Connect 1.0 Token
+     * @param bookmarkDto Contains the article IDs
+     */
+    public async delete(token: string, bookmarkDto: BookmarkDto) {
+        const { articleSlug } = bookmarkDto;
+
+        const { id }: Record<string, any> = await this.articlesService
+            .findOne(articleSlug);
+
+        try {
+            const metadata: Metadata = new Metadata();
+            metadata.add('authorization', token);
+
+            await this.bookmarksService
+                .deleteBookmark({ articleId: id }, metadata)
+                .toPromise();
         } catch ({ code, metadata, details }) {
             const errorMetadata = (metadata as Metadata);
             const message = errorMetadata.get('error')[0];

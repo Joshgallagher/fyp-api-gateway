@@ -1,6 +1,7 @@
-import { Controller, Get, Headers, Body, Post, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Headers, Body, Post, Delete, HttpCode, HttpStatus, Param } from '@nestjs/common';
 import { BookmarksService } from './bookmarks.service';
 import { BookmarkDto } from './dto/bookmark.dto';
+import { AppService } from 'src/app.service';
 
 @Controller('bookmarks')
 export class BookmarksController {
@@ -18,15 +19,15 @@ export class BookmarksController {
 
     @Get()
     findAll(@Headers('authorization') token: string): Promise<any> {
-        return this.bookmarksService.findAll(token);
+        return this.bookmarksService.findAll(token, [AppService.ARTICLES_SERVICE_INCLUDE]);
     }
 
-    @Delete()
+    @Delete(':slug')
     @HttpCode(HttpStatus.NO_CONTENT)
     delete(
         @Headers('authorization') token: string,
-        @Body() bookmarkDto: BookmarkDto
+        @Param('slug') slug: string
     ): void {
-        this.bookmarksService.delete(token, bookmarkDto);
+        this.bookmarksService.delete(token, slug);
     }
 }

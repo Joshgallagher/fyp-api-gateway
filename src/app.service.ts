@@ -4,6 +4,8 @@ import { Injectable } from '@nestjs/common';
 export class AppService {
     public static readonly USER_SERVICE_INCLUDE = 'USER_SERVICE_INCLUDE';
     public static readonly RATINGS_SERVICE_INCLUDE = 'RATINGS_SERVICE_INCLUDE';
+    public static readonly COMMENTS_SERVICE_INCLUDE = 'COMMENTS_SERVICE_INCLUDE';
+    public static readonly ARTICLES_SERVICE_INCLUDE = 'ARTICLES_SERVICE_INCLUDE';
 
     protected readonly requestHeaders = {
         'Content-Type': 'application/json',

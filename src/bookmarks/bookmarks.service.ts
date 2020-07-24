@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, InternalServerErrorException, ConflictException, Inject, NotFoundException } from '@nestjs/common';
+import { Injectable, OnModuleInit, InternalServerErrorException, ConflictException, Inject, NotFoundException, forwardRef, Logger } from '@nestjs/common';
 import { Metadata } from 'grpc';
 import { ClientGrpc } from '@nestjs/microservices';
 import { ArticlesService } from '../articles/articles.service';
@@ -8,15 +8,17 @@ import { BookmarkDto } from './dto/bookmark.dto';
 import { AppService } from '../app.service';
 
 @Injectable()
-export class BookmarksService implements OnModuleInit {
+export class BookmarksService extends AppService implements OnModuleInit {
     private bookmarksService: BookmarksServiceInterface;
 
     constructor(
         @Inject(BOOKMARKS_SERVICE_PROVIDER_TOKEN)
         private readonly client: ClientGrpc,
-        @Inject('ArticlesService')
+        @Inject(forwardRef(() => ArticlesService))
         private readonly articlesService: ArticlesService
-    ) { }
+    ) {
+        super();
+    }
 
     onModuleInit() {
         this.bookmarksService = this.client
@@ -68,7 +70,7 @@ export class BookmarksService implements OnModuleInit {
      * 
      * @param token OpenID Connect 1.0 Token
      */
-    public async findAll(token: string) {
+    public async findAll(token: string, includes: string[] = []) {
         let userBookmarks: Record<string, any>[];
 
         try {
@@ -88,26 +90,27 @@ export class BookmarksService implements OnModuleInit {
             throw new InternalServerErrorException();
         }
 
-        const bookmarkIds = userBookmarks.map(({ articleId }) => articleId);
-        const aggregate = await this.articlesService.findByIds(bookmarkIds, [
-            AppService.USER_SERVICE_INCLUDE,
-            AppService.RATINGS_SERVICE_INCLUDE
-        ]);
+        if (this.hasInclude(includes, AppService.ARTICLES_SERVICE_INCLUDE)) {
+            const bookmarkIds = userBookmarks.map(({ articleId }) => articleId);
+            userBookmarks = await this.articlesService.findByIds(bookmarkIds, [
+                AppService.USER_SERVICE_INCLUDE,
+                AppService.RATINGS_SERVICE_INCLUDE
+            ]);
+            userBookmarks.map(bookmark => Object.assign(bookmark, { bookmarked: true }));
+        }
 
-        return aggregate;
+        return userBookmarks;
     }
 
     /**
      * Deletes a users bookmark.
      * 
      * @param token OpenID Connect 1.0 Token
-     * @param bookmarkDto Contains the article IDs
+     * @param slug The article slug
      */
-    public async delete(token: string, bookmarkDto: BookmarkDto) {
-        const { articleSlug } = bookmarkDto;
-
+    public async delete(token: string, slug: string) {
         const { id }: Record<string, any> = await this.articlesService
-            .findOne(articleSlug);
+            .findOne(slug);
 
         try {
             const metadata: Metadata = new Metadata();

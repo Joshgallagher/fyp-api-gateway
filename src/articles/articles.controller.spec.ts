@@ -40,6 +40,7 @@ describe('Articles Controller', () => {
     it('An article can be created', () => {
       const article: ArticleDto = {
         title: faker.lorem.sentence(),
+        subtitle: faker.lorem.sentence(),
         body: faker.lorem.sentence(),
       };
       const token = faker.random.alphaNumeric();
@@ -62,14 +63,16 @@ describe('Articles Controller', () => {
 
   describe('findAll', () => {
     it('All articles can be found', () => {
+      const token = faker.random.alphaNumeric();
       const includes: string[] = [
-        'USER_SERVICE_INCLUDE',
-        'RATINGS_SERVICE_INCLUDE'
+        AppService.USER_SERVICE_INCLUDE,
+        AppService.RATINGS_SERVICE_INCLUDE,
+        AppService.COMMENTS_SERVICE_INCLUDE
       ];
 
-      controller.findAll();
+      controller.findAll(token);
 
-      expect(service.findAll).toHaveBeenCalledWith(includes);
+      expect(service.findAll).toHaveBeenCalledWith(includes, token);
     });
   });
 
@@ -80,10 +83,11 @@ describe('Articles Controller', () => {
         'USER_SERVICE_INCLUDE',
         'RATINGS_SERVICE_INCLUDE'
       ];
+      const token = faker.random.alphaNumeric();
 
-      controller.findAllByUser(uuid);
+      controller.findAllByUser(uuid, token);
 
-      expect(service.findAllByUser).toHaveBeenCalledWith(uuid, includes);
+      expect(service.findAllByUser).toHaveBeenCalledWith(uuid, includes, token);
     });
   });
 
@@ -91,6 +95,7 @@ describe('Articles Controller', () => {
     it('An article can be updated', () => {
       const article: ArticleDto = {
         title: faker.lorem.sentence(),
+        subtitle: faker.lorem.sentence(),
         body: faker.lorem.sentence(),
       };
       const token = faker.random.alphaNumeric();

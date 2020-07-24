@@ -5,7 +5,7 @@ import { RatingsService } from '../ratings/ratings.service';
 import { CommentsService } from '../comments/comments.service';
 import { AppService } from '../app.service';
 import { ArticleDto } from './dto/article.dto';
-import { BookmarksService } from 'src/bookmarks/bookmarks.service';
+import { BookmarksService } from '../bookmarks/bookmarks.service';
 
 @Injectable()
 export class ArticlesService extends AppService {

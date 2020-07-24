@@ -1,7 +1,7 @@
 import { Controller, Get, Headers, Body, Post, Delete, HttpCode, HttpStatus, Param } from '@nestjs/common';
 import { BookmarksService } from './bookmarks.service';
 import { BookmarkDto } from './dto/bookmark.dto';
-import { AppService } from 'src/app.service';
+import { AppService } from '../app.service';
 
 @Controller('bookmarks')
 export class BookmarksController {

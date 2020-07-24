@@ -16,29 +16,35 @@ export class ArticlesController {
     }
 
     @Get(':slug')
-    findOne(@Param('slug') slug: string): Promise<object> {
+    findOne(
+        @Param('slug') slug: string,
+        @Headers('authorization') token: string
+    ): Promise<object> {
         return this.articlesService.findOne(slug, [
             AppService.USER_SERVICE_INCLUDE,
-            AppService.RATINGS_SERVICE_INCLUDE
-        ]);
+            AppService.RATINGS_SERVICE_INCLUDE,
+            AppService.COMMENTS_SERVICE_INCLUDE
+        ], token);
     }
 
     @Get()
-    findAll(): Promise<Array<object>> {
+    findAll(@Headers('authorization') token: string): Promise<Array<object>> {
         return this.articlesService.findAll([
             AppService.USER_SERVICE_INCLUDE,
-            AppService.RATINGS_SERVICE_INCLUDE
-        ]);
+            AppService.RATINGS_SERVICE_INCLUDE,
+            AppService.COMMENTS_SERVICE_INCLUDE
+        ], token);
     }
 
     @Get('user/:userId')
     findAllByUser(
-        @Param('userId', new ParseUUIDPipe()) userId: string
+        @Param('userId', new ParseUUIDPipe()) userId: string,
+        @Headers('authorization') token: string
     ): Promise<Array<object>> {
         return this.articlesService.findAllByUser(userId, [
             AppService.USER_SERVICE_INCLUDE,
             AppService.RATINGS_SERVICE_INCLUDE
-        ]);
+        ], token);
     }
 
     @Put(':slug')

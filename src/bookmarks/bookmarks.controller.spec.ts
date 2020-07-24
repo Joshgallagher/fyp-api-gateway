@@ -3,6 +3,7 @@ import { BookmarksController } from './bookmarks.controller';
 import { BookmarksService } from './bookmarks.service';
 import * as faker from 'faker';
 import { BookmarkDto } from './dto/bookmark.dto';
+import { AppService } from '../app.service';
 
 describe('Bookmarks Controller', () => {
   let controller: BookmarksController;
@@ -50,20 +51,19 @@ describe('Bookmarks Controller', () => {
 
       controller.findAll(token);
 
-      expect(service.findAll).toHaveBeenCalledWith(token);
+      expect(service.findAll)
+        .toHaveBeenCalledWith(token, [AppService.ARTICLES_SERVICE_INCLUDE]);
     });
   });
 
   describe('delete', () => {
     it('A bookmark can be deleted', () => {
       const token = faker.random.alphaNumeric();
-      const bookmark: BookmarkDto = {
-        articleSlug: faker.lorem.slug(),
-      };
+      const articleSlug = faker.lorem.slug();
 
-      controller.delete(token, bookmark);
+      controller.delete(token, articleSlug);
 
-      expect(service.delete).toHaveBeenCalledWith(token, bookmark);
+      expect(service.delete).toHaveBeenCalledWith(token, articleSlug);
     });
   });
 });

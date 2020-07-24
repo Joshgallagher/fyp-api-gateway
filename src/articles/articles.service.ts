@@ -1,9 +1,11 @@
-import { Injectable, HttpService, Inject, HttpStatus, NotFoundException, InternalServerErrorException, UnprocessableEntityException } from '@nestjs/common';
+import { Injectable, HttpService, Inject, HttpStatus, NotFoundException, InternalServerErrorException, UnprocessableEntityException, UnauthorizedException, Logger } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { ConfigService } from '@nestjs/config';
 import { RatingsService } from '../ratings/ratings.service';
+import { CommentsService } from '../comments/comments.service';
 import { AppService } from '../app.service';
 import { ArticleDto } from './dto/article.dto';
+import { BookmarksService } from '../bookmarks/bookmarks.service';
 
 @Injectable()
 export class ArticlesService extends AppService {
@@ -17,7 +19,11 @@ export class ArticlesService extends AppService {
     @Inject('UserService')
     private readonly userService: UserService,
     @Inject('RatingsService')
-    private readonly ratingsService: RatingsService
+    private readonly ratingsService: RatingsService,
+    @Inject('CommentsService')
+    private readonly commentsService: CommentsService,
+    @Inject('BookmarksService')
+    private readonly bookmarksService: BookmarksService
   ) {
     super();
 
@@ -31,14 +37,18 @@ export class ArticlesService extends AppService {
    * @param createArticleDto Contains the article title and body
    */
   public async create(token: string, createArticleDto: ArticleDto): Promise<object> {
-    const { title, body } = createArticleDto;
+    const { title, subtitle, body } = createArticleDto;
     const headers = { ...this.requestHeaders, Authorization: token };
 
     let slug: string;
 
     try {
       const { data } = await this.httpService
-        .post(`${this.serviceBaseUrl}/articles`, { title, body }, { headers })
+        .post(
+          `${this.serviceBaseUrl}/articles`,
+          { title, subtitle, body },
+          { headers }
+        )
         .toPromise();
 
       slug = data.slug;
@@ -47,6 +57,10 @@ export class ArticlesService extends AppService {
 
       if (statusCode === HttpStatus.UNPROCESSABLE_ENTITY) {
         throw new UnprocessableEntityException(message);
+      }
+
+      if (statusCode === HttpStatus.UNAUTHORIZED) {
+        throw new UnauthorizedException();
       }
 
       throw new InternalServerErrorException();
@@ -61,7 +75,11 @@ export class ArticlesService extends AppService {
    * @param slug Article slug
    * @param includes Optional parameter to include external data
    */
-  public async findOne(slug: string, includes: string[] = []): Promise<object> {
+  public async findOne(
+    slug: string,
+    includes: string[] = [],
+    token: string = null
+  ): Promise<object> {
     let article: Record<string, any>;
 
     try {
@@ -78,6 +96,20 @@ export class ArticlesService extends AppService {
       }
 
       throw new InternalServerErrorException();
+    }
+
+    if (token !== null) {
+      let bookmarks: Record<string, any>;
+
+      try {
+        bookmarks = await this.bookmarksService.findAll(token);
+
+        if (bookmarks.find(({ articleId }) => article.id === articleId) !== undefined) {
+          article['bookmarked'] = true;
+        }
+      } catch (e) {
+        article['bookmarked'] = false;
+      }
     }
 
     if (this.hasInclude(includes, AppService.USER_SERVICE_INCLUDE)) {
@@ -98,6 +130,30 @@ export class ArticlesService extends AppService {
       } catch (e) {
         article['rating'] = 0;
       }
+
+      if (token !== null) {
+        try {
+          const isRated: any = await this.ratingsService.userArticleRating(token, article.id);
+
+          if (isRated.rating > 0) {
+            article['rated'] = true;
+          }
+        } catch (e) {
+          article['rated'] = false;
+        }
+      }
+    }
+
+    if (this.hasInclude(includes, AppService.COMMENTS_SERVICE_INCLUDE)) {
+      let comments: any;
+
+      try {
+        comments = await this.commentsService.findAll(article.id);
+
+        article['commentsCount'] = comments.length;
+      } catch (e) {
+        article['commentsCount'] = 0;
+      }
     }
 
     return article;
@@ -107,8 +163,9 @@ export class ArticlesService extends AppService {
    * Finds all articles.
    * 
    * @param includes Optional parameter to include external data
+   * @param token OpenID Connect 1.0 Token
    */
-  public async findAll(includes: string[] = []): Promise<object[]> {
+  public async findAll(includes: string[] = [], token: string = null): Promise<object[]> {
     let articles: Record<string, any>[];
 
     try {
@@ -119,6 +176,22 @@ export class ArticlesService extends AppService {
       articles = data;
     } catch (e) {
       return [];
+    }
+
+    if (token !== null) {
+      let bookmarks: Record<string, any>;
+
+      try {
+        bookmarks = await this.bookmarksService.findAll(token);
+
+        articles = articles.map((article: Record<string, any>) => {
+          if (bookmarks.find(({ articleId }) => article.id === articleId) !== undefined) {
+            return { ...article, bookmarked: true };
+          }
+
+          return { ...article, bookmarked: false };
+        });
+      } catch (e) { }
     }
 
     if (this.hasInclude(includes, AppService.USER_SERVICE_INCLUDE)) {
@@ -161,6 +234,14 @@ export class ArticlesService extends AppService {
       });
     }
 
+    if (this.hasInclude(includes, AppService.COMMENTS_SERVICE_INCLUDE)) {
+      for (let i = 0; i < articles.length; i++) {
+        const comments = await this.commentsService.findAll(articles[i].id);
+
+        articles[i]['commentsCount'] = comments.length;
+      }
+    }
+
     return articles;
   }
 
@@ -169,8 +250,13 @@ export class ArticlesService extends AppService {
    * 
    * @param userId The users (authors) UUID
    * @param includes Optional parameter to include external data
+   * @param token OpenID Connect 1.0 Token
    */
-  public async findAllByUser(userId: string, includes: string[] = []): Promise<Array<object>> {
+  public async findAllByUser(
+    userId: string,
+    includes: string[] = [],
+    token: string = null
+  ): Promise<Array<object>> {
     let articles: Record<string, any>[];
 
     try {
@@ -181,6 +267,22 @@ export class ArticlesService extends AppService {
       articles = data;
     } catch (e) {
       return [];
+    }
+
+    if (token !== null) {
+      let bookmarks: Record<string, any>;
+
+      try {
+        bookmarks = await this.bookmarksService.findAll(token);
+
+        articles = articles.map((article: Record<string, any>) => {
+          if (bookmarks.find(({ articleId }) => article.id === articleId) !== undefined) {
+            return { ...article, bookmarked: true };
+          }
+
+          return { ...article, bookmarked: false };
+        });
+      } catch (e) { }
     }
 
     if (this.hasInclude(includes, AppService.USER_SERVICE_INCLUDE)) {
@@ -298,12 +400,16 @@ export class ArticlesService extends AppService {
     slug: string,
     updateArticleDto: ArticleDto
   ): Promise<void> {
-    const { title, body } = updateArticleDto;
+    const { title, subtitle, body } = updateArticleDto;
     const headers = { ...this.requestHeaders, Authorization: token };
 
     try {
       await this.httpService
-        .put(`${this.serviceBaseUrl}/articles/${slug}`, { title, body }, { headers })
+        .put(
+          `${this.serviceBaseUrl}/articles/${slug}`,
+          { title, subtitle, body },
+          { headers }
+        )
         .toPromise();
     } catch ({ response }) {
       const { statusCode, message } = response.data;
@@ -318,7 +424,7 @@ export class ArticlesService extends AppService {
 
       throw new InternalServerErrorException();
     }
-  }
+  };
 
   /**
    * Deletes an article.

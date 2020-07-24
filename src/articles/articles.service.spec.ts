@@ -2,12 +2,20 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ArticlesService } from './articles.service';
 import { UserService } from '../user/user.service';
 import { ConfigService } from '@nestjs/config';
-import { HttpService, UnprocessableEntityException, InternalServerErrorException } from '@nestjs/common';
+import { HttpService } from '@nestjs/common';
 import * as faker from 'faker';
 import { ArticleDto } from './dto/article.dto';
 import { RatingsService } from '../ratings/ratings.service';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 import { AppService } from '../app.service';
+import { CommentsService } from '../comments/comments.service';
+import { BookmarksService } from '../bookmarks/bookmarks.service';
+import { BOOKMARKS_SERVICE_PROVIDER_TOKEN } from '../services/providers/bookmarks-service.provider';
+
+const createBookmarkMock = jest.fn(() => of({ bookmarked: true }));
+const articleId = faker.random.number();
+const findAllBookmarksMock = jest.fn(() => of({ bookmarks: [{ articleId }] }));
+const deleteBookmarkMock = jest.fn(() => of({ deleted: true }));
 
 describe('ArticlesService', () => {
   let service: ArticlesService;
@@ -20,6 +28,18 @@ describe('ArticlesService', () => {
       providers: [
         ConfigService,
         ArticlesService,
+        CommentsService,
+        BookmarksService,
+        {
+          provide: BOOKMARKS_SERVICE_PROVIDER_TOKEN,
+          useValue: {
+            getService: () => ({
+              createBookmark: createBookmarkMock,
+              findAllBookmarks: findAllBookmarksMock,
+              deleteBookmark: deleteBookmarkMock
+            })
+          },
+        },
         {
           provide: RatingsService,
           useFactory: () => ({
@@ -50,6 +70,14 @@ describe('ArticlesService', () => {
     httpService = module.get<HttpService>(HttpService);
     userService = module.get<UserService>(UserService);
     ratingsService = module.get<RatingsService>(RatingsService);
+
+    module.init();
+  });
+
+  beforeEach(() => {
+    createBookmarkMock.mockClear();
+    findAllBookmarksMock.mockClear();
+    deleteBookmarkMock.mockClear();
   });
 
   it('should be defined', () => {
@@ -60,6 +88,7 @@ describe('ArticlesService', () => {
     it('An article can be created', async () => {
       const article: ArticleDto = {
         title: faker.lorem.sentence(),
+        subtitle: faker.lorem.sentence(),
         body: faker.lorem.sentence(),
       };
       const token = faker.random.alphaNumeric();
@@ -292,6 +321,7 @@ describe('ArticlesService', () => {
     it('An article can be updated', async () => {
       const article: ArticleDto = {
         title: faker.lorem.sentence(),
+        subtitle: faker.lorem.sentence(),
         body: faker.lorem.sentence(),
       };
       const token = faker.random.alphaNumeric();

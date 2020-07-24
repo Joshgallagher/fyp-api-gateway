@@ -82,35 +82,38 @@ describe('BookmarksService', () => {
 
   describe('findAll', () => {
     it('All a users bookmarks can be found', async () => {
+      const findAll = await service.findAll(token);
+
+      expect(findAllBookmarksMock).toBeCalledWith({}, expectedMetadata);
+      expect(findAll).toEqual([{ articleId }]);
+    });
+
+    it('All users bookmarks with article data can be included', async () => {
       const expected = [{
         rating: faker.random.number(),
         author: faker.name.findName()
       }];
 
       articlesService.findByIds = jest.fn(() => (expected)) as any;
-      const findAll = await service.findAll(token);
-
-      expect(articlesService.findByIds).toBeCalledWith([articleId], [
-        AppService.USER_SERVICE_INCLUDE,
-        AppService.RATINGS_SERVICE_INCLUDE
+      const findAll = await service.findAll(token, [
+        AppService.ARTICLES_SERVICE_INCLUDE
       ]);
+
       expect(findAllBookmarksMock).toBeCalledWith({}, expectedMetadata);
-      expect(findAll).toEqual(expected);
+      expect(findAll).toEqual([{ ...expected[0], bookmarked: true }]);
     });
   });
 
   describe('delete', () => {
     it('A bookmark can be deleted', async () => {
-      const bookmark: BookmarkDto = {
-        articleSlug: faker.lorem.slug(),
-      };
+      const articleSlug = faker.lorem.slug();
       const id = faker.random.number();
 
       articlesService.findOne = jest.fn().mockReturnValue({ id });
-      await service.delete(token, bookmark);
+      await service.delete(token, articleSlug);
 
       expect(articlesService.findOne)
-        .toBeCalledWith(bookmark.articleSlug);
+        .toBeCalledWith(articleSlug);
       expect(deleteBookmarkMock)
         .toBeCalledWith({ articleId: id }, expectedMetadata);
     });

@@ -1,4 +1,4 @@
-import { Injectable, UnprocessableEntityException, UnauthorizedException, Inject, OnModuleInit, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException, UnauthorizedException, Inject, OnModuleInit, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ClientGrpc } from '@nestjs/microservices';
 import { Metadata } from 'grpc';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -28,15 +28,19 @@ export class AuthService implements OnModuleInit {
         const { email, password } = loginUserDto;
 
         try {
-            return this.userService
+            const response = await this.userService
                 .authenticateUser({ email, password })
                 .toPromise();
+
+            return response;
         } catch ({ code, metadata, details }) {
             const errorMetadata = (metadata as Metadata);
             const message = errorMetadata.get('error')[0];
-            const field = errorMetadata.get('field')[0];
+
+            Logger.error(metadata);
 
             if (details === 'VALIDATION_ERROR') {
+                const field = errorMetadata.get('field')[0];
                 throw new UnprocessableEntityException({ field, message });
             }
 

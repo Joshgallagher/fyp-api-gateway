@@ -28,15 +28,18 @@ export class AuthService implements OnModuleInit {
         const { email, password } = loginUserDto;
 
         try {
-            return this.userService
+            const response = await this.userService
                 .authenticateUser({ email, password })
                 .toPromise();
+
+            return response;
         } catch ({ code, metadata, details }) {
             const errorMetadata = (metadata as Metadata);
             const message = errorMetadata.get('error')[0];
-            const field = errorMetadata.get('field')[0];
 
             if (details === 'VALIDATION_ERROR') {
+                const field = errorMetadata.get('field')[0];
+
                 throw new UnprocessableEntityException({ field, message });
             }
 

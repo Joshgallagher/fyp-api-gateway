@@ -18,5 +18,3 @@ ENV NODE_ENV=development
 RUN npm install --only=development
 
 CMD [ "npm", "run", "start:dev" ]
-
-# TODO: Consider production build

@@ -6,10 +6,11 @@
   "license": "MIT",
   "scripts": {
     "prebuild": "NODE_ENV=production rimraf dist",
+    "prebuild:proto": "mkdir -p dist && cp src/services/protofiles/* dist/",
     "build": "NODE_ENV=production nest build",
     "format": "NODE_ENV=development prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "NODE_ENV=development nest start",
-    "start:dev": "NODE_ENV=development nest start --watch",
+    "start:dev": "NODE_ENV=development npm run prebuild:proto && nest start --watch",
     "start:debug": "NODE_ENV=development nest start --debug --watch",
     "start:prod": "NODE_ENV=production node dist/main",
     "lint": "NODE_ENV=development tslint -p tsconfig.json -c tslint.json",
